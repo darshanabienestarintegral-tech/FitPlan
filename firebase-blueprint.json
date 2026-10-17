@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with role differentiation between Administrador and Usuario",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique Firebase Auth UID" },
+        "email": { "type": "string", "description": "User email address" },
+        "displayName": { "type": "string", "description": "User full name" },
+        "role": { "type": "string", "enum": ["admin", "usuario"], "description": "Role determining access levels" },
+        "assignedRoutineId": { "type": "string", "description": "Currently assigned routine ID" },
+        "createdAt": { "type": "string", "description": "Creation timestamp in ISO 8601" }
+      },
+      "required": ["id", "email", "role"]
+    },
+    "Routine": {
+      "title": "Routine",
+      "description": "Workout routine defined for students or gym athletes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Routine unique ID" },
+        "userId": { "type": "string", "description": "Assigned user or student ID" },
+        "name": { "type": "string", "description": "Routine title" },
+        "goal": { "type": "string", "description": "Fitness goal" },
+        "difficulty": { "type": "string", "description": "Difficulty level" },
+        "daysPerWeek": { "type": "number", "description": "Days per week" },
+        "sessionDuration": { "type": "number", "description": "Average duration in minutes" },
+        "isDefault": { "type": "boolean", "description": "Whether this is a default protected routine" },
+        "createdBy": { "type": "string", "description": "Admin or user who created/uploaded this routine" },
+        "createdAt": { "type": "string", "description": "Timestamp created" }
+      },
+      "required": ["id", "name", "goal"]
+    },
+    "SessionLog": {
+      "title": "SessionLog",
+      "description": "Completed workout training session for tracking progress",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Session log unique ID" },
+        "userId": { "type": "string", "description": "User who completed the session" },
+        "routineDayId": { "type": "string", "description": "Routine day identifier" },
+        "routineDayName": { "type": "string", "description": "Name of training day" },
+        "date": { "type": "string", "description": "ISO timestamp of completion" },
+        "durationMin": { "type": "number", "description": "Duration in minutes" },
+        "notes": { "type": "string", "description": "Athlete workout notes" }
+      },
+      "required": ["id", "userId", "durationMin", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "UserProfile" },
+      "description": "Stores user profiles and role designations"
+    },
+    "/routines/{routineId}": {
+      "schema": { "$ref": "Routine" },
+      "description": "Stores workout routines"
+    },
+    "/session_logs/{logId}": {
+      "schema": { "$ref": "SessionLog" },
+      "description": "Stores user training session progress logs"
+    }
+  }
+}

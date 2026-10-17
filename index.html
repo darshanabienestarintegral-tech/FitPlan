@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>FitPlan - Planificador de Rutinas de Entrenamiento</title>
+    <meta name="description" content="Crea y gestiona tu rutina de entrenamiento personalizada en menos de 60 segundos con temporizador y registro de sesiones." />
+    <meta property="og:title" content="FitPlan - Planificador de Rutinas de Entrenamiento" />
+    <meta property="og:description" content="Crea y gestiona tu rutina de entrenamiento personalizada en menos de 60 segundos con temporizador y registro de sesiones." />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#9E5325" />
+    <script>
+      (function() {
+        try {
+          if (typeof Window !== 'undefined' && Window.prototype) {
+            const protoDesc = Object.getOwnPropertyDescriptor(Window.prototype, 'fetch');
+            if (protoDesc && protoDesc.get && !protoDesc.set) {
+              Object.defineProperty(Window.prototype, 'fetch', {
+                get: protoDesc.get,
+                set: function(val) {
+                  Object.defineProperty(this, 'fetch', {
+                    value: val,
+                    writable: true,
+                    configurable: true,
+                    enumerable: true,
+                  });
+                },
+                configurable: true,
+                enumerable: true,
+              });
+            }
+          }
+
+          let _currentFetch = window.fetch ? window.fetch.bind(window) : undefined;
+          Object.defineProperty(window, 'fetch', {
+            get: function() {
+              return _currentFetch;
+            },
+            set: function(val) {
+              _currentFetch = val;
+            },
+            configurable: true,
+            enumerable: true,
+          });
+        } catch (_) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Montserrat:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-[#FAF7F2] text-[#1C1917] antialiased selection:bg-[#9E5325] selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
