@@ -1,0 +1,462 @@
+[
+  {
+    "id": "ex-01",
+    "name": "Flexiones de Brazos (Push-ups)",
+    "muscle_group": "pecho",
+    "equipment": "ninguno",
+    "difficulty": "principiante",
+    "description": "Ejercicio fundamental de empuje con peso corporal. Mantén el core activo y el cuerpo en línea recta.",
+    "secondary_muscles": ["tríceps", "hombros", "core"],
+    "tips": ["Baja el pecho hasta casi rozar el suelo", "Codos a 45 grados del torso", "Aprieta glúteos y abdomen"]
+  },
+  {
+    "id": "ex-02",
+    "name": "Press de Banca con Mancuernas",
+    "muscle_group": "pecho",
+    "equipment": "mancuernas",
+    "difficulty": "intermedio",
+    "description": "Desarrollo completo de la masa pectoral con mayor rango de movimiento y activación estabilizadora.",
+    "secondary_muscles": ["tríceps", "deltoides anterior"],
+    "tips": ["Retrae las escápulas en el banco", "No choques las mancuernas arriba", "Controla la fase de bajada en 2-3 segundos"]
+  },
+  {
+    "id": "ex-03",
+    "name": "Press de Banca con Barra",
+    "muscle_group": "pecho",
+    "equipment": "gimnasio",
+    "difficulty": "intermedio",
+    "description": "El rey de los ejercicios de empuje para fuerza e hipertrofia del pectoral mayor.",
+    "secondary_muscles": ["tríceps", "deltoides anterior"],
+    "tips": ["Pies bien plantados en el piso", "Barra desciende al centro del esternón", "Mantén el arco lumbar natural y escápulas juntas"]
+  },
+  {
+    "id": "ex-04",
+    "name": "Aperturas con Mancuernas (Flies)",
+    "muscle_group": "pecho",
+    "equipment": "mancuernas",
+    "difficulty": "intermedio",
+    "description": "Aislamiento pectoral centrado en la extensión y elongación de las fibras musculares.",
+    "secondary_muscles": ["deltoides anterior"],
+    "tips": ["Ligera flexión fija en los codos", "Siente el estiramiento profundo sin forzar los hombros", "Cierra como si abrazaras un árbol"]
+  },
+  {
+    "id": "ex-05",
+    "name": "Fondos en Paralelas (Dips)",
+    "muscle_group": "pecho",
+    "equipment": "gimnasio",
+    "difficulty": "avanzado",
+    "description": "Ejercicio compuesto de alta exigencia para la porción inferior del pecho y tríceps.",
+    "secondary_muscles": ["tríceps", "hombros"],
+    "tips": ["Inclina el torso ligeramente hacia adelante para enfatizar el pecho", "Baja hasta que los codos formen 90 grados", "Empuja con fuerza controlada"]
+  },
+  {
+    "id": "ex-06",
+    "name": "Dominadas Pronas (Pull-ups)",
+    "muscle_group": "espalda",
+    "equipment": "ninguno",
+    "difficulty": "avanzado",
+    "description": "El mejor ejercicio con peso corporal para amplitud de la espalda (dorsal ancho).",
+    "secondary_muscles": ["bíceps", "antebrazo", "trapecio"],
+    "tips": ["Inicia el movimiento deprimiendo las escápulas", "Lleva la barbilla por encima de la barra", "Baja completamente sin balanceo"]
+  },
+  {
+    "id": "ex-07",
+    "name": "Remo con Mancuerna a una Mano",
+    "muscle_group": "espalda",
+    "equipment": "mancuernas",
+    "difficulty": "principiante",
+    "description": "Excelente para corregir desbalances unilaterales y trabajar el dorsal ancho y romboides.",
+    "secondary_muscles": ["bíceps", "deltoides posterior"],
+    "tips": ["Apoya rodilla y mano opuesta en un banco", "Tira con el codo hacia la cadera", "Mantén la espalda recta paralela al suelo"]
+  },
+  {
+    "id": "ex-08",
+    "name": "Remo con Barra (Pendlay / Inclinado)",
+    "muscle_group": "espalda",
+    "equipment": "gimnasio",
+    "difficulty": "intermedio",
+    "description": "Constructor masivo de densidad de espalda media y alta, activando también erectores espinales.",
+    "secondary_muscles": ["romboides", "trapecios", "bíceps"],
+    "tips": ["Torso inclinado a 45 grados o paralelo", "Tira la barra hacia el ombligo", "No des tirones con la cadera"]
+  },
+  {
+    "id": "ex-09",
+    "name": "Jalón al Pecho en Polea (Lat Pulldown)",
+    "muscle_group": "espalda",
+    "equipment": "gimnasio",
+    "difficulty": "principiante",
+    "description": "Movimiento controlado de tracción vertical, ideal para aislar dorsales y progresar hacia dominadas.",
+    "secondary_muscles": ["bíceps", "antebrazos"],
+    "tips": ["Sujeta la barra a un ancho superior a los hombros", "Tira con los codos hacia abajo y atrás", "No te eches excesivamente hacia atrás"]
+  },
+  {
+    "id": "ex-10",
+    "name": "Superman Isométrico en Suelo",
+    "muscle_group": "espalda",
+    "equipment": "ninguno",
+    "difficulty": "principiante",
+    "description": "Fortalecimiento de la cadena posterior, zona lumbar y romboides sin necesidad de equipo.",
+    "secondary_muscles": ["glúteos", "isquiotibiales"],
+    "tips": ["Boca abajo, eleva brazos y piernas a la vez", "Sostén 2 segundos arriba", "Mirada al suelo para cuidar el cuello"]
+  },
+  {
+    "id": "ex-11",
+    "name": "Sentadillas al Aire (Air Squats)",
+    "muscle_group": "piernas",
+    "equipment": "ninguno",
+    "difficulty": "principiante",
+    "description": "Patrón básico de sentadilla con peso corporal para cuadríceps, glúteos y movilidad.",
+    "secondary_muscles": ["glúteos", "pantorrillas", "core"],
+    "tips": ["Pies al ancho de hombros, puntas levemente hacia afuera", "Rompe el paralelo con la cadera", "Rodillas siguen la dirección de las puntas"]
+  },
+  {
+    "id": "ex-12",
+    "name": "Sentadilla Goblet con Mancuerna",
+    "muscle_group": "piernas",
+    "equipment": "mancuernas",
+    "difficulty": "intermedio",
+    "description": "Sentadilla con peso frontal que fuerza una postura erguida perfecta y gran activación de cuádriceps.",
+    "secondary_muscles": ["glúteos", "core", "hombros"],
+    "tips": ["Sostén la mancuerna vertical pegada al pecho", "Baja profundo entre las rodillas", "Pecho erguido en todo el recorrido"]
+  },
+  {
+    "id": "ex-13",
+    "name": "Sentadilla Trasera con Barra (Barbell Squat)",
+    "muscle_group": "piernas",
+    "equipment": "gimnasio",
+    "difficulty": "avanzado",
+    "description": "Pilar indiscutible del desarrollo de tren inferior y producción de fuerza sistémica.",
+    "secondary_muscles": ["glúteos", "core", "lumbares"],
+    "tips": ["Barra firme sobre trapecios", "Inhala profundo y aprieta el abdomen antes de bajar", "Empuja el suelo con fuerza uniforme"]
+  },
+  {
+    "id": "ex-14",
+    "name": "Peso Muerto Rumano con Mancuernas",
+    "muscle_group": "piernas",
+    "equipment": "mancuernas",
+    "difficulty": "intermedio",
+    "description": "Enfoque principal en isquiotibiales y glúteos mediante una bisagra de cadera controlada.",
+    "secondary_muscles": ["isquiotibiales", "glúteos", "espalda baja"],
+    "tips": ["Mancuernas rozan las piernas durante la bajada", "Envía la cadera hacia atrás con rodillas semi-flexionadas", "Espalda neutral en todo momento"]
+  },
+  {
+    "id": "ex-15",
+    "name": "Zancadas Caminando (Lunges)",
+    "muscle_group": "piernas",
+    "equipment": "ninguno",
+    "difficulty": "principiante",
+    "description": "Trabajo unilateral para equilibrio, glúteos, cuádriceps y estabilidad de tobillo y rodilla.",
+    "secondary_muscles": ["glúteos", "isquiotibiales", "pantorrillas"],
+    "tips": ["Paso amplio para formar ángulos de 90 grados", "Rodilla trasera roza suavemente el suelo", "Torso erguido"]
+  },
+  {
+    "id": "ex-16",
+    "name": "Prensa de Piernas (Leg Press)",
+    "muscle_group": "piernas",
+    "equipment": "gimnasio",
+    "difficulty": "principiante",
+    "description": "Excelente para sobrecargar el tren inferior con mínimo estrés en la columna vertebral.",
+    "secondary_muscles": ["cuádriceps", "glúteos"],
+    "tips": ["No bloquees las rodillas al extender por completo", "Mantén la zona lumbar pegada al respaldo", "Baja de forma controlada"]
+  },
+  {
+    "id": "ex-17",
+    "name": "Elevaciones de Talón (Calf Raises)",
+    "muscle_group": "piernas",
+    "equipment": "ninguno",
+    "difficulty": "principiante",
+    "description": "Desarrollo del gastrocnemio y sóleo para pantorrillas fuertes y resistentes.",
+    "secondary_muscles": ["pantorrillas"],
+    "tips": ["Ponte de puntillas y aguanta 1 segundo arriba", "Baja lentamente hasta estirar por completo", "Hazlo sobre un escalón para mayor recorrido"]
+  },
+  {
+    "id": "ex-18",
+    "name": "Press Militar con Mancuernas",
+    "muscle_group": "hombros",
+    "equipment": "mancuernas",
+    "difficulty": "intermedio",
+    "description": "Desarrollo de fuerza y volumen en deltoides anterior y lateral con excelente libertad articular.",
+    "secondary_muscles": ["tríceps", "trapecio superior"],
+    "tips": ["Empuja verticalmente sin arquear la zona lumbar", "No juntes las mancuernas bruscamente arriba", "Baja hasta la altura de las orejas"]
+  },
+  {
+    "id": "ex-19",
+    "name": "Elevaciones Laterales con Mancuernas",
+    "muscle_group": "hombros",
+    "equipment": "mancuernas",
+    "difficulty": "principiante",
+    "description": "El ejercicio por excelencia para ensanchar los hombros y darles aspecto 3D (deltoide lateral).",
+    "secondary_muscles": ["trapecios"],
+    "tips": ["Codos ligeramente flexionados", "Eleva hasta la altura de los hombros, no más arriba", "Controla la bajada sin balanceo corporal"]
+  },
+  {
+    "id": "ex-20",
+    "name": "Press Militar con Barra de Pie (Overhead Press)",
+    "muscle_group": "hombros",
+    "equipment": "gimnasio",
+    "difficulty": "avanzado",
+    "description": "Clásico ejercicio olímpico que construye hombros imponentes y fuerza de core total.",
+    "secondary_muscles": ["core", "tríceps", "glúteos"],
+    "tips": ["Glúteos y abdomen apretados como piedra", "Pasa la cabeza hacia adelante cuando la barra supera la frente", "Barra en línea vertical sobre los talones"]
+  },
+  {
+    "id": "ex-21",
+    "name": "Flexiones Pica (Pike Push-ups)",
+    "muscle_group": "hombros",
+    "equipment": "ninguno",
+    "difficulty": "intermedio",
+    "description": "Variante de flexión que traslada el peso a los hombros y tríceps imitando un press militar.",
+    "secondary_muscles": ["tríceps", "trapecio", "core"],
+    "tips": ["Cadera alta formando una 'V' invertida", "Baja la cabeza formando un trípode con las manos", "Empuja hacia atrás y arriba"]
+  },
+  {
+    "id": "ex-22",
+    "name": "Pájaros con Mancuerna (Rear Delt Fly)",
+    "muscle_group": "hombros",
+    "equipment": "mancuernas",
+    "difficulty": "intermedio",
+    "description": "Aislamiento de la cabeza posterior del deltoides para una postura sana y equilibrada.",
+    "secondary_muscles": ["romboides", "trapecio medio"],
+    "tips": ["Inclina el torso hacia adelante", "Abre los brazos como alas guiando con los codos", "Usa pesos moderados para no compensar"]
+  },
+  {
+    "id": "ex-23",
+    "name": "Curl de Bíceps con Mancuernas",
+    "muscle_group": "brazos",
+    "equipment": "mancuernas",
+    "difficulty": "principiante",
+    "description": "Aislamiento clásico para bíceps braquial con supinación en el punto más alto.",
+    "secondary_muscles": ["antebrazos"],
+    "tips": ["Codos pegados a los costados en todo momento", "Gira la muñeca hacia afuera arriba", "No balancees la espalda"]
+  },
+  {
+    "id": "ex-24",
+    "name": "Curl de Bíceps Martillo (Hammer Curl)",
+    "muscle_group": "brazos",
+    "equipment": "mancuernas",
+    "difficulty": "principiante",
+    "description": "Enfocado en el braquial anterior y braquiorradial para brazos más gruesos y antebrazos fuertes.",
+    "secondary_muscles": ["antebrazos", "bíceps"],
+    "tips": ["Agarre neutro con palmas enfrentadas", "Mantén el control en la fase excéntrica", "Evita balancear los codos hacia adelante"]
+  },
+  {
+    "id": "ex-25",
+    "name": "Fondos en Banco para Tríceps",
+    "muscle_group": "brazos",
+    "equipment": "ninguno",
+    "difficulty": "principiante",
+    "description": "Excelente ejercicio con peso corporal para tríceps utilizando una silla o banco.",
+    "secondary_muscles": ["hombros anteriores", "pecho"],
+    "tips": ["Mantén la espalda pegada al borde del banco", "Codos apuntando hacia atrás, no hacia los lados", "Extiende por completo sin hiperextender"]
+  },
+  {
+    "id": "ex-26",
+    "name": "Extensiones de Tríceps en Polea (Pushdown)",
+    "muscle_group": "brazos",
+    "equipment": "gimnasio",
+    "difficulty": "principiante",
+    "description": "Movimiento de aislamiento con tensión constante para las tres cabezas del tríceps.",
+    "secondary_muscles": ["antebrazos"],
+    "tips": ["Bloquea los codos al costado del torso", "Abre la cuerda al final del recorrido para máxima contracción", "No eleves los hombros"]
+  },
+  {
+    "id": "ex-27",
+    "name": "Press Francés con Mancuernas (Skull Crushers)",
+    "muscle_group": "brazos",
+    "equipment": "mancuernas",
+    "difficulty": "intermedio",
+    "description": "Aislamiento profundo de la cabeza larga del tríceps acostado en banco plano.",
+    "secondary_muscles": ["tríceps"],
+    "tips": ["Baja las mancuernas a los lados de la frente/orejas", "Mantén los codos apuntando al techo", "Controla la bajada para proteger los codos"]
+  },
+  {
+    "id": "ex-28",
+    "name": "Plancha Abdominal Frontal (Plank)",
+    "muscle_group": "core",
+    "equipment": "ninguno",
+    "difficulty": "principiante",
+    "description": "Ejercicio isométrico vital para la estabilidad del core, transverso abdominal y postura.",
+    "secondary_muscles": ["hombros", "glúteos", "espalda baja"],
+    "tips": ["Cuerpo formando una línea recta de pies a cabeza", "Aprieta glúteos y mete el ombligo", "No dejes caer la cadera ni la subas en exceso"]
+  },
+  {
+    "id": "ex-29",
+    "name": "Elevaciones de Piernas Colgado",
+    "muscle_group": "core",
+    "equipment": "gimnasio",
+    "difficulty": "avanzado",
+    "description": "Alta activación del recto abdominal inferior y flexores de cadera desde posición de suspensión.",
+    "secondary_muscles": ["oblicuos", "antebrazos"],
+    "tips": ["Evita el balanceo del cuerpo", "Enrolla la pelvis hacia el pecho para activar el abdomen", "Baja las piernas de manera controlada"]
+  },
+  {
+    "id": "ex-30",
+    "name": "Bicycle Crunches (Abdominales Bicicleta)",
+    "muscle_group": "core",
+    "equipment": "ninguno",
+    "difficulty": "intermedio",
+    "description": "Uno de los ejercicios con mayor activación electromiográfica en recto abdominal y oblicuos.",
+    "secondary_muscles": ["oblicuos", "flexores de cadera"],
+    "tips": ["Lleva codo hacia la rodilla contraria alternadamente", "Gira desde el torso, no tirando del cuello", "Mantén ritmo pausado y constante"]
+  },
+  {
+    "id": "ex-31",
+    "name": "Rueda Abdominal (Ab Wheel Rollout)",
+    "muscle_group": "core",
+    "equipment": "gimnasio",
+    "difficulty": "avanzado",
+    "description": "Exigente ejercicio anti-extensión que fortalece todo el cinturón abdominal y serratos.",
+    "secondary_muscles": ["dorsales", "hombros"],
+    "tips": ["Comienza de rodillas", "Rueda hacia adelante sin que la espalda baja se arquee", "Tira con el abdomen para regresar a la posición inicial"]
+  },
+  {
+    "id": "ex-32",
+    "name": "Giro Ruso con Mancuerna (Russian Twist)",
+    "muscle_group": "core",
+    "equipment": "mancuernas",
+    "difficulty": "intermedio",
+    "description": "Trabajo dinámico de rotación del torso para los oblicuos y estabilidad rotacional.",
+    "secondary_muscles": ["recto abdominal", "flexores"],
+    "tips": ["Inclina el torso a 45 grados", "Gira de lado a lado de forma controlada", "Eleva los pies del suelo para mayor intensidad"]
+  },
+  {
+    "id": "ex-33",
+    "name": "Puente de Glúteos (Glute Bridge)",
+    "muscle_group": "piernas",
+    "equipment": "ninguno",
+    "difficulty": "principiante",
+    "description": "Activación directa del glúteo mayor y alivio de tensión en la espalda baja.",
+    "secondary_muscles": ["glúteos", "isquiotibiales", "core"],
+    "tips": ["Empuja a través de los talones", "Aprieta fuertemente los glúteos arriba por 2 segundos", "No hiperextiendas la espalda"]
+  },
+  {
+    "id": "ex-34",
+    "name": "Hip Thrust con Barra / Mancuerna",
+    "muscle_group": "piernas",
+    "equipment": "mancuernas",
+    "difficulty": "intermedio",
+    "description": "El movimiento por excelencia para máxima hipertrofia y potencia del glúteo mayor.",
+    "secondary_muscles": ["glúteos", "isquiotibiales"],
+    "tips": ["Espalda alta apoyada contra el banco", "Barbilla al pecho mirando al frente", "Bloquea arriba contrayendo glúteos al máximo"]
+  },
+  {
+    "id": "ex-35",
+    "name": "Remo Invertido con Peso Corporal (Inverted Row)",
+    "muscle_group": "espalda",
+    "equipment": "ninguno",
+    "difficulty": "principiante",
+    "description": "Tracción horizontal con peso corporal excelente para principiantes y para salud escapular.",
+    "secondary_muscles": ["bíceps", "deltoides posterior", "core"],
+    "tips": ["Usa una barra baja o borde de mesa estable", "Mantén el cuerpo rígido como una plancha", "Tira el pecho hacia la barra"]
+  },
+  {
+    "id": "ex-36",
+    "name": "Sentadilla Búlgara Asistida",
+    "muscle_group": "piernas",
+    "equipment": "mancuernas",
+    "difficulty": "intermedio",
+    "description": "Trabajo unilateral exigente con pie trasero elevado y soporte asistido para mayor volumen de fuerza sin perder equilibrio.",
+    "secondary_muscles": ["glúteos", "cuádriceps", "core"],
+    "tips": ["Apoya el empeine trasero en un banco", "Desciende flexionando la rodilla delantera a 90 grados", "Mantén el torso erguido y peso en el talón"]
+  },
+  {
+    "id": "ex-37",
+    "name": "Curl Femoral con Banda Elástica",
+    "muscle_group": "piernas",
+    "equipment": "ninguno",
+    "difficulty": "principiante",
+    "description": "Aislamiento y resistencia constante para la flexión de rodilla e isquiotibiales con banda de resistencia.",
+    "secondary_muscles": ["pantorrillas", "glúteos"],
+    "tips": ["Ancla la banda a un punto fijo", "Lleva los talones hacia los glúteos de forma controlada", "Aprieta 1 segundo en el punto de máxima contracción"]
+  },
+  {
+    "id": "ex-38",
+    "name": "Pallof Press con Banda",
+    "muscle_group": "core",
+    "equipment": "ninguno",
+    "difficulty": "principiante",
+    "description": "Ejercicio isométrico anti-rotacional de referencia para estabilidad de la zona media y protección lumbar.",
+    "secondary_muscles": ["oblicuos", "glúteos", "hombros"],
+    "tips": ["Pies al ancho de hombros con rodillas semi-flexionadas", "Extiende los brazos al frente sin dejar que la banda gire el torso", "Respira normalmente manteniendo el core firme"]
+  },
+  {
+    "id": "ex-39",
+    "name": "Press de Hombros con Respaldo",
+    "muscle_group": "hombros",
+    "equipment": "mancuernas",
+    "difficulty": "intermedio",
+    "description": "Press vertical sentado con soporte lumbar para concentrar la carga pura en deltoides anterior y lateral.",
+    "secondary_muscles": ["tríceps", "trapecio"],
+    "tips": ["Espalda y cabeza apoyadas contra el respaldo", "Empuja verticalmente sin juntar bruscamente las mancuernas", "Baja hasta la altura de las orejas"]
+  },
+  {
+    "id": "ex-40",
+    "name": "Remo con Banda Elástica",
+    "muscle_group": "espalda",
+    "equipment": "ninguno",
+    "difficulty": "principiante",
+    "description": "Tracción horizontal con resistencia progresiva ideal para retracción escapular y salud postural.",
+    "secondary_muscles": ["bíceps", "deltoides posterior", "romboides"],
+    "tips": ["Pisa o ancla la banda firmemente", "Tira con los codos hacia las costillas", "Junta las escápulas atrás y mantén el pecho abierto"]
+  },
+  {
+    "id": "ex-41",
+    "name": "Rotación Externa de Hombro con Banda",
+    "muscle_group": "hombros",
+    "equipment": "ninguno",
+    "difficulty": "principiante",
+    "description": "Fortalecimiento analítico del manguito rotador (infraespinoso y redondo menor) para prevenir lesiones y estabilizar el hombro.",
+    "secondary_muscles": ["deltoides posterior"],
+    "tips": ["Mantén el codo pegado a la cintura a 90 grados", "Gira el antebrazo hacia afuera controlando la resistencia", "No compenses girando el torso"]
+  },
+  {
+    "id": "ex-42",
+    "name": "Plancha Lateral",
+    "muscle_group": "core",
+    "equipment": "ninguno",
+    "difficulty": "intermedio",
+    "description": "Pilar de la estabilidad lateral que recluta intensamente oblicuos, transverso del abdomen y abductores de cadera.",
+    "secondary_muscles": ["glúteo medio", "oblicuos", "hombros"],
+    "tips": ["Codo alineado justo debajo del hombro", "Cadera elevada formando una línea diagonal recta", "Mantén el cuello alineado con la columna"]
+  },
+  {
+    "id": "ex-43",
+    "name": "Bird Dog Controlado",
+    "muscle_group": "core",
+    "equipment": "ninguno",
+    "difficulty": "principiante",
+    "description": "Patrón cruzado cuadrúpedo para estabilidad lumbopélvica, coordinación neuromuscular y fortalecimiento de glúteos y erectores.",
+    "secondary_muscles": ["glúteos", "hombros", "espalda baja"],
+    "tips": ["En cuatro puntos de apoyo, extiende brazo y pierna contrarios simultáneamente", "Alinea con el torso sin arquear la zona lumbar", "Movimiento pausado y controlado"]
+  },
+  {
+    "id": "ex-44",
+    "name": "Step-up a Escalón de Altura Moderada",
+    "muscle_group": "piernas",
+    "equipment": "mancuernas",
+    "difficulty": "intermedio",
+    "description": "Subida a cajón o banco con mancuernas para potencia unilateral, equilibrio y cuádriceps/glúteos.",
+    "secondary_muscles": ["glúteos", "cuádriceps", "pantorrillas"],
+    "tips": ["Pisa con todo el pie sobre la plataforma", "Empuja desde el talón de la pierna adelantada", "Controla la fase de bajada sin dejarte caer"]
+  },
+  {
+    "id": "ex-45",
+    "name": "Caminata Lateral con Minibanda",
+    "muscle_group": "piernas",
+    "equipment": "ninguno",
+    "difficulty": "principiante",
+    "description": "Activación profunda de abductores y glúteo medio, preparando la cadera para desplazamientos y estabilidad articular.",
+    "secondary_muscles": ["glúteo medio", "cadera", "core"],
+    "tips": ["Coloca la minibanda sobre las rodillas o tobillos", "Mantén postura atlética con ligera flexión de cadera y rodillas", "Da pasos laterales manteniendo tensión continua en la banda"]
+  },
+  {
+    "id": "ex-46",
+    "name": "Bicicleta Estática",
+    "muscle_group": "piernas",
+    "equipment": "gimnasio",
+    "difficulty": "principiante",
+    "description": "Trabajo cardiovascular aeróbico y resistencia muscular de bajo impacto para piernas y capacidad atlética.",
+    "secondary_muscles": ["cuádriceps", "pantorrillas", "sistema cardiovascular"],
+    "tips": ["Ajusta la altura del sillín a la cadera", "Mantén cadencia fluida constante", "Postura erguida sin colapsar los hombros"]
+  }
+]
