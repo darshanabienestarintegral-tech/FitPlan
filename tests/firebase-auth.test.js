@@ -282,3 +282,21 @@ test('student catalog refresh never uploads pending administrator edits', async 
   await useRoutineStore.getState().syncRoutineCatalog();
   expect(cloudRoutines.size).toBe(0);
 });
+
+test('imported custom exercise definitions and instructions travel with the cloud routine', async () => {
+  signInAdmin();
+  const baseExercises = useRoutineStore.getState().exercises;
+  const custom = { ...baseExercises[0], id: 'pdf-custom-exercise', name: 'Imported movement', is_default: false };
+  useRoutineStore.getState().addExerciseToLibrary(custom);
+  const routine = adminRoutine();
+  routine.days = [{ ...routine.days[0], exercise_ids: [custom.id], exercise_configs: [{exerciseId: custom.id,
+    sets: 3, reps: '10 por lado', restSeconds: 0, restLabel: 'No especificado', notes: 'Sostener 5 segundos.'}] }];
+  useRoutineStore.getState().addCustomRoutine(routine, false);
+  await useRoutineStore.getState().syncRoutineCatalog();
+  expect(cloudRoutines.get(routine.id).exercise_library.some(ex=>ex.id===custom.id)).toBe(true);
+  signInLocally();
+  useRoutineStore.setState({ routines: seedRoutines, syncedRoutineIds: [], pendingRoutineIds: [], exercises: baseExercises });
+  await useRoutineStore.getState().syncRoutineCatalog();
+  expect(useRoutineStore.getState().exercises.find(ex=>ex.id===custom.id).name).toBe('Imported movement');
+  expect(useRoutineStore.getState().routines.find(r=>r.id===routine.id).days[0].exercise_configs[0].notes).toBe('Sostener 5 segundos.');
+});

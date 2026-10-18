@@ -7,6 +7,8 @@ interface ExerciseCardProps {
   sets?: number;
   reps?: string | number;
   restSeconds?: number;
+  restLabel?: string;
+  notes?: string;
   completedSets?: number;
   isCompleted?: boolean;
   isInWorkoutMode?: boolean;
@@ -28,6 +30,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   sets,
   reps,
   restSeconds = 90,
+  restLabel,
+  notes,
   completedSets = 0,
   isCompleted = false,
   isInWorkoutMode = false,
@@ -82,26 +86,28 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
               {exercise.name}
             </h3>
 
+            {notes && <p className="mt-2 text-xs text-[#78716C] whitespace-pre-wrap">{notes}</p>}
             {/* Target Sets & Reps if routine item */}
             {sets && reps && (
               <div className="mt-2.5 flex items-center gap-1.5 sm:gap-2 flex-wrap text-xs sm:text-sm">
                 <div className="flex items-center gap-1 font-bold text-[#9E5325] bg-[#FAF7F2] px-2.5 sm:px-3 py-1 rounded-xl border border-[#EAE3D9] text-xs sm:text-sm whitespace-nowrap shrink-0">
                   <span>{sets} series</span>
                   <span className="text-[#A8A29E]">×</span>
-                  <span>{reps} reps</span>
+                  <span>{reps}{/min|seg|\bs\b/i.test(String(reps)) ? '' : ' reps'}</span>
                 </div>
 
-                {onStartRestTimer && (
+                {onStartRestTimer && restSeconds > 0 && (
                   <button
                     onClick={() => onStartRestTimer(restSeconds, exercise.name)}
                     className="flex items-center gap-1 text-[11px] sm:text-xs text-[#78716C] hover:text-[#9E5325] bg-[#FAF7F2] hover:bg-[#F4ECE3] px-2.5 sm:px-3 py-1 rounded-xl border border-[#EAE3D9] active:scale-95 transition-all min-h-[30px] font-medium whitespace-nowrap shrink-0"
                     title="Iniciar temporizador de descanso"
                   >
                     <Timer className="w-3.5 h-3.5 text-[#9E5325] shrink-0" />
-                    <span>{restSeconds}s descanso</span>
+                    <span>{restLabel || `${restSeconds}s descanso`}</span>
                   </button>
                 )}
 
+                {restSeconds === 0 && restLabel && <span className="text-xs text-[#78716C]">{restLabel}</span>}
                 {/* Alternative switch trigger button */}
                 {alternativeExercises.length > 0 && onSelectAlternative && (
                   <button

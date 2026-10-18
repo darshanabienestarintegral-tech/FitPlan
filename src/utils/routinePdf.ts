@@ -169,7 +169,7 @@ export function generateRoutinePDF({ routine, exercises, athleteName }: ExportPd
       const equipment = ex?.equipment ? ex.equipment.toUpperCase() : 'LIBRE';
       const setsCount = Number(config.sets) || 3;
       const repsStr = String(config.reps || '10-12');
-      const restStr = `${config.restSeconds || 90}s`;
+      const restStr = config.restSeconds === 0 ? '—' : config.restLabel?.startsWith('60–90') ? '60–90s' : `${config.restSeconds ?? 90}s`;
 
       const rowHeight = 11.5;
       checkPageBreak(rowHeight + 2);

@@ -307,6 +307,8 @@ export const Routine: React.FC = () => {
                 sets={config.sets}
                 reps={config.reps}
                 restSeconds={config.restSeconds}
+                restLabel={config.restLabel}
+                notes={config.notes}
                 completedSets={completedSets}
                 isCompleted={isCompleted}
                 isInWorkoutMode={isWorkoutInProgress}
@@ -319,7 +321,7 @@ export const Routine: React.FC = () => {
                 onToggleComplete={() => toggleExerciseCompleted(exercise.id)}
                 onSetClick={() => {
                   incrementSetCompleted(exercise.id, config.sets);
-                  startRestTimer(config.restSeconds, exercise.name);
+                  if (config.restSeconds > 0) startRestTimer(config.restSeconds, exercise.name);
                 }}
                 onStartRestTimer={(seconds, name) => startRestTimer(seconds, name)}
               />

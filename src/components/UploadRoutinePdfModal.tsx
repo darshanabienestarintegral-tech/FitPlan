@@ -63,9 +63,11 @@ export const UploadRoutinePdfModal: React.FC<UploadRoutinePdfModalProps> = ({
 
   // Form customizations after parsing
   const [routineName, setRoutineName] = useState('');
-  const [assignedStudent, setAssignedStudent] = useState(initialTargetUser || 'cristian_aguilera');
+  const [assignedStudent, setAssignedStudent] = useState(initialTargetUser || '');
   const [selectedGoal, setSelectedGoal] = useState<Goal>('resistencia');
-  const [makeActiveImmediately, setMakeActiveImmediately] = useState(true);
+  const [makeActiveImmediately, setMakeActiveImmediately] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const importedRoutineId = useRef(`routine-pdf-${crypto.randomUUID()}`);
   const [expandedDayIndex, setExpandedDayIndex] = useState<number>(0);
   const [successSavedName, setSuccessSavedName] = useState('');
 
@@ -110,25 +112,16 @@ export const UploadRoutinePdfModal: React.FC<UploadRoutinePdfModalProps> = ({
     try {
       const parsed = await parseRoutineFromPdf(file, exercises);
 
-      if (!parsed.days || parsed.days.length === 0) {
-        throw new Error('No se detectaron días de entrenamiento en el PDF.');
+      if (!parsed.days?.length || parsed.days.some((day) => !day.exercises.length)) {
+        throw new Error('No se reconocieron ejercicios en todos los días. Revisa el formato del PDF antes de cargarlo.');
       }
 
       setParsedData(parsed);
       setRoutineName(parsed.routineName);
       setSelectedGoal(parsed.goal);
 
-      // Automatically identify if this routine corresponds to Cristian Aguilera
-      const isForCristian =
-        parsed.athleteName.toLowerCase().includes('cristian') ||
-        parsed.routineName.toLowerCase().includes('cristian') ||
-        initialTargetUser === 'cristian_aguilera';
-
-      if (isForCristian) {
-        setAssignedStudent('cristian_aguilera');
-      } else if (currentUser?.username) {
-        setAssignedStudent(currentUser.username);
-      }
+      setAssignedStudent(initialTargetUser || '');
+      importedRoutineId.current = `routine-pdf-${crypto.randomUUID()}`;
     } catch (err: any) {
       console.error('Error parsing PDF routine:', err);
       setErrorMessage(
@@ -142,28 +135,27 @@ export const UploadRoutinePdfModal: React.FC<UploadRoutinePdfModalProps> = ({
     }
   };
 
-  const handleSaveRoutine = () => {
-    if (!parsedData) return;
+  const handleSaveRoutine = async () => {
+    if (!parsedData || isSaving) return;
+    setIsSaving(true);
+    setErrorMessage('');
 
     try {
-      const isCristian =
-        assignedStudent === 'cristian_aguilera' ||
-        routineName.toLowerCase().includes('cristian') ||
-        parsedData.athleteName.toLowerCase().includes('cristian');
-
+      const target = registeredAccounts.find((account) => account.username === assignedStudent);
       const appRoutine = convertParsedRoutineToAppRoutine(
         {
           ...parsedData,
           routineName: routineName.trim() || parsedData.routineName,
           goal: selectedGoal,
         },
-        assignedStudent,
-        isAdmin ? 'admin' : currentUser?.username || 'usuario',
-        isCristian ? true : false,
+        target?.profileId || currentUser?.uid || currentUser?.username || 'usuario',
+        currentUser?.username || 'usuario',
+        false,
         exercises,
         (newlyCreated) => {
           newlyCreated.forEach((ex) => addExerciseToLibrary(ex));
-        }
+        },
+        importedRoutineId.current,
       );
 
       // Check if routine with this ID already exists (e.g. updating Cristian Aguilera's default routine)
@@ -172,6 +164,13 @@ export const UploadRoutinePdfModal: React.FC<UploadRoutinePdfModalProps> = ({
         updateRoutine(existing.id, appRoutine);
       } else {
         addCustomRoutine(appRoutine, false);
+      }
+
+      if (currentUser?.uid && isAdmin) {
+        if (!await useRoutineStore.getState().syncRoutineCatalog()) {
+          throw new Error('El PDF sigue en este navegador, pero no se pudo guardar en Internet. Reintenta antes de cerrar.');
+        }
+        if (target) await useUserStore.getState().assignRoutineToAccount(target.username, appRoutine.id);
       }
 
       // Activate routine immediately if option is checked
@@ -202,6 +201,8 @@ export const UploadRoutinePdfModal: React.FC<UploadRoutinePdfModalProps> = ({
     } catch (err: any) {
       console.error('Error saving routine:', err);
       setErrorMessage(err?.message || 'Error al guardar la rutina.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -378,6 +379,9 @@ export const UploadRoutinePdfModal: React.FC<UploadRoutinePdfModalProps> = ({
                 </button>
               </div>
 
+              {parsedData.warnings && <div className="p-3 bg-amber-50 text-amber-900 text-xs rounded-xl space-y-1">
+                {parsedData.warnings.map((warning) => <p key={warning}>{warning}</p>)}
+              </div>}
               {/* Editable Fields */}
               <div className="bg-[#FAF7F2] p-4 rounded-2xl border border-[#EAE3D9] space-y-3.5 text-xs">
                 <div>
@@ -403,9 +407,9 @@ export const UploadRoutinePdfModal: React.FC<UploadRoutinePdfModalProps> = ({
                       onChange={(e) => setAssignedStudent(e.target.value)}
                       className="w-full bg-white border border-[#EAE3D9] rounded-xl px-3 py-2 text-xs font-bold text-[#1C1917] focus:outline-none focus:border-[#9E5325]"
                     >
-                      <option value="cristian_aguilera">👤 Cristian Aguilera (Alumno Oficial)</option>
+                      <option value="">Sin asignar — guardar solo en el catálogo</option>
                       {registeredAccounts
-                        .filter((a) => a.username !== 'cristian_aguilera' && a.username !== 'admin')
+                        .filter((a) => a.role !== 'admin')
                         .map((acc) => (
                           <option key={acc.username} value={acc.username}>
                             👤 {acc.fullName || acc.username}
@@ -518,6 +522,7 @@ export const UploadRoutinePdfModal: React.FC<UploadRoutinePdfModalProps> = ({
                                       {ex.equipment}
                                     </span>
                                   </div>
+                                  {ex.notes && <p className="text-[11px] text-[#78716C] mt-1">{ex.notes}</p>}
                                   {ex.matchedExerciseId ? (
                                     <p className="text-[10px] text-emerald-700 mt-0.5 flex items-center gap-1">
                                       <CheckCircle2 className="w-3 h-3 inline" />
@@ -537,7 +542,7 @@ export const UploadRoutinePdfModal: React.FC<UploadRoutinePdfModalProps> = ({
                                   </span>
                                   <span className="bg-[#FAF7F2] border border-[#EAE3D9] px-2 py-1 rounded-lg text-[#9E5325] flex items-center gap-1">
                                     <Clock className="w-3 h-3" />
-                                    {ex.restSeconds}s
+                                    {ex.restLabel || `${ex.restSeconds}s`}
                                   </span>
                                 </div>
                               </div>
@@ -580,11 +585,12 @@ export const UploadRoutinePdfModal: React.FC<UploadRoutinePdfModalProps> = ({
           {parsedData && (
             <button
               type="button"
+              disabled={isSaving}
               onClick={handleSaveRoutine}
               className="bg-gradient-to-r from-[#9E5325] to-[#7B3A13] hover:from-[#8C4318] text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 font-heading uppercase shadow-md transition-all active:scale-95"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>Cargar a la Lista de Rutinas</span>
+              <span>{isSaving ? 'Guardando en Internet…' : 'Cargar a la Lista de Rutinas'}</span>
             </button>
           )}
         </div>

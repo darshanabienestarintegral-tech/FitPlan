@@ -38,6 +38,9 @@ interface DraftExerciseConfig {
   sets: number;
   reps: string;
   restSeconds: number;
+  restLabel?: string;
+  notes?: string;
+  alternativeExerciseIds?: string[];
 }
 
 interface DraftDay {
@@ -87,7 +90,10 @@ export const RoutineDefinitionModal: React.FC<RoutineDefinitionModalProps> = ({
           exerciseId: c.exerciseId,
           sets: c.sets || 4,
           reps: String(c.reps || '10'),
-          restSeconds: c.restSeconds || 90,
+          restSeconds: c.restSeconds ?? 90,
+          restLabel: c.restLabel,
+          notes: c.notes,
+          alternativeExerciseIds: c.alternativeExerciseIds,
         })),
       }));
     }
@@ -161,7 +167,10 @@ export const RoutineDefinitionModal: React.FC<RoutineDefinitionModalProps> = ({
               exerciseId: c.exerciseId,
               sets: c.sets || 4,
               reps: String(c.reps || '10'),
-              restSeconds: c.restSeconds || 90,
+              restSeconds: c.restSeconds ?? 90,
+          restLabel: c.restLabel,
+          notes: c.notes,
+          alternativeExerciseIds: c.alternativeExerciseIds,
             })),
           }))
         );
@@ -442,6 +451,7 @@ export const RoutineDefinitionModal: React.FC<RoutineDefinitionModalProps> = ({
     updated[activeDayIndex].exercises[exIdx] = {
       ...updated[activeDayIndex].exercises[exIdx],
       [field]: value,
+      ...(field === 'restSeconds' ? { restLabel: undefined } : {}),
     };
     setDays(updated);
   };
@@ -452,6 +462,7 @@ export const RoutineDefinitionModal: React.FC<RoutineDefinitionModalProps> = ({
     updated[activeDayIndex].exercises = updated[activeDayIndex].exercises.map((e) => ({
       ...e,
       restSeconds: seconds,
+      restLabel: undefined,
     }));
     setDays(updated);
   };
@@ -562,8 +573,10 @@ export const RoutineDefinitionModal: React.FC<RoutineDefinitionModalProps> = ({
           exerciseId: item.exerciseId,
           sets: Number(item.sets) || 4,
           reps: String(item.reps || '10').trim(),
-          restSeconds: Number(item.restSeconds) || 90,
-          alternativeExerciseIds: alts.slice(0, 3),
+          restSeconds: Number.isFinite(item.restSeconds) ? item.restSeconds : 90,
+          restLabel: item.restLabel,
+          notes: item.notes,
+          alternativeExerciseIds: item.notes ? (item.alternativeExerciseIds || []) : alts.slice(0, 3),
         };
       });
 

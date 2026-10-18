@@ -180,7 +180,7 @@ export const ExportRoutinePdfModal: React.FC<ExportRoutinePdfModalProps> = ({
                           </div>
                           <div className="col-span-5 min-w-0 pr-1">
                             <div className="font-bold text-[#1C1917] truncate">{ex?.name || 'Ejercicio'}</div>
-                            <div className="text-[10px] text-[#78716C] uppercase truncate">{ex?.muscle_group || 'General'} • {config.restSeconds || 90}s rest</div>
+                            <div className="text-[10px] text-[#78716C] uppercase truncate">{ex?.muscle_group || 'General'} • {config.restLabel || `${config.restSeconds ?? 90}s descanso`}</div>
                           </div>
                           <div className="col-span-2 font-semibold text-[#1C1917] text-[11px] whitespace-nowrap">
                             {config.sets} × {config.reps}
