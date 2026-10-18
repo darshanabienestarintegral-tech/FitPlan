@@ -88,17 +88,8 @@ export async function saveUserProfile(profile: FirebaseUserProfile): Promise<voi
 
 // Fetch all registered users from Firestore
 export async function fetchAllUsers(): Promise<FirebaseUserProfile[]> {
-  try {
-    const querySnapshot = await getDocs(collection(db, 'users'));
-    const list: FirebaseUserProfile[] = [];
-    querySnapshot.forEach((docSnap) => {
-      list.push(docSnap.data() as FirebaseUserProfile);
-    });
-    return list;
-  } catch (err) {
-    console.warn('Could not fetch all users from Firestore:', err);
-    return [];
-  }
+  const snapshot = await withFirebaseTimeout(getDocs(collection(db, 'users')));
+  return snapshot.docs.map((item) => ({ ...item.data(), uid: item.id }) as FirebaseUserProfile);
 }
 
 // Sign up new user without requiring an email address (username + password)

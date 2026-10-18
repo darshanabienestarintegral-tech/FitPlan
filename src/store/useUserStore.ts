@@ -7,7 +7,11 @@ import {
   registerWithFirebase as fbRegister,
   logoutFromFirebase as fbLogout,
   UserRole,
+  fetchAllUsers,
+  fetchUserProfile,
+  FirebaseUserProfile,
 } from '../lib/firebase';
+import { assignCloudRoutine } from '../lib/routineCatalog';
 
 export interface CurrentUserSession {
   uid?: string;
@@ -43,7 +47,9 @@ interface UserState {
   logout: () => void;
   createAdminCode: (code: string) => boolean;
   deleteAdminCode: (code: string) => void;
-  assignRoutineToAccount: (username: string, routineId: string) => void;
+  assignRoutineToAccount: (username: string, routineId: string) => Promise<void>;
+  syncCloudAccounts: () => Promise<void>;
+  accountsSyncError: string | null;
   createAccountByAdmin: (accountData: {
     username: string;
     password?: string;
@@ -70,6 +76,18 @@ interface UserState {
   syncWithSupabase: () => Promise<void>;
 }
 
+function accountFromProfile(profile: FirebaseUserProfile): UserAccount {
+  return {
+    username: profile.username || profile.displayName,
+    fullName: profile.displayName,
+    profileId: profile.uid,
+    role: profile.role,
+    assignedRoutineId: profile.assignedRoutineId,
+    createdAt: profile.createdAt,
+    accessCode: 'FIREBASE-AUTH',
+  };
+}
+
 const defaultAdminCodes = ['FITPLAN2026', 'ADMIN-2026', 'VIP-ATLETA', 'PRO-TRAIN'];
 
 export const useUserStore = create<UserState>()(
@@ -78,6 +96,21 @@ export const useUserStore = create<UserState>()(
       currentUser: null,
       isAuthenticated: false,
       registeredAccounts: [],
+      accountsSyncError: null,
+      syncCloudAccounts: async () => {
+        const user = get().currentUser;
+        if (!user?.uid || !get().isAuthenticated) return;
+        set({ accountsSyncError: null });
+        try {
+          const profiles = user.isAdmin ? await fetchAllUsers() : [await fetchUserProfile(user.uid)];
+          if (get().currentUser?.uid !== user.uid) return;
+          set({ registeredAccounts: profiles.filter((item): item is FirebaseUserProfile => item !== null)
+            .map(accountFromProfile) });
+        } catch (error) {
+          console.warn('Could not load cloud accounts:', error);
+          if (get().currentUser?.uid === user.uid) set({ accountsSyncError: 'No se pudo actualizar la lista de usuarios desde Internet. Reintenta.' });
+        }
+      },
       adminAccessCodes: defaultAdminCodes,
 
       profile: null,
@@ -122,6 +155,7 @@ export const useUserStore = create<UserState>()(
 
           const isAdmin = fbProfile.role === 'admin';
           set({
+            registeredAccounts: [accountFromProfile(fbProfile)],
             currentUser: {
               uid: fbProfile.uid,
               email: fbProfile.email,
@@ -404,14 +438,27 @@ export const useUserStore = create<UserState>()(
         }));
       },
 
-      assignRoutineToAccount: (username, routineId) => {
-        set((state) => ({
-          registeredAccounts: state.registeredAccounts.map((acc) =>
-            acc.username.toLowerCase() === username.toLowerCase()
-              ? { ...acc, assignedRoutineId: routineId }
-              : acc
-          ),
-        }));
+      assignRoutineToAccount: async (username, routineId) => {
+        const user = get().currentUser;
+        const account = get().registeredAccounts.find((item) => item.username.toLowerCase() === username.toLowerCase());
+        if (!user?.uid || !account?.profileId) {
+          const message = 'Actualiza la lista de usuarios y entra con una cuenta de Firebase para asignar rutinas.';
+          set({ accountsSyncError: message });
+          throw new Error(message);
+        }
+        if (!user.isAdmin && account.profileId !== user.uid) throw new Error('No puedes asignar rutinas a otra cuenta.');
+        try {
+          await assignCloudRoutine(account.profileId, routineId);
+          if (get().currentUser?.uid !== user.uid) return;
+          set((state) => ({
+            accountsSyncError: null,
+            registeredAccounts: state.registeredAccounts.map((item) => item.profileId === account.profileId
+              ? { ...item, assignedRoutineId: routineId } : item),
+          }));
+        } catch (error) {
+          if (get().currentUser?.uid === user.uid) set({ accountsSyncError: 'No se pudo guardar la asignación en Internet. Reintenta.' });
+          throw error;
+        }
       },
 
       createAccountByAdmin: (accountData) => {

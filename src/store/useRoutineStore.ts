@@ -7,7 +7,9 @@ import { generateRoutine } from '../lib/routineGenerator';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useUserStore } from './useUserStore';
 import { saveCloudSession, loadCloudSessions, deleteCloudSession } from '../lib/sessionLogs';
+import { loadCloudRoutines, saveCloudRoutine, deleteCloudRoutine } from '../lib/routineCatalog';
 
+const routineSyncTasks = new Map<string, Promise<boolean>>();
 const sessionSyncTasks = new Map<string, Promise<void>>();
 
 interface WorkoutSessionState {
@@ -26,6 +28,12 @@ interface WorkoutSessionState {
 interface RoutineState {
   exercises: Exercise[];
   routines: Routine[];
+  pendingRoutineIds: string[];
+  syncedRoutineIds: string[];
+  deletedRoutineIds: string[];
+  routineSyncError: string | null;
+  isSyncingRoutines: boolean;
+  syncRoutineCatalog: () => Promise<boolean>;
   activeRoutine: Routine | null;
   activeDayIndex: number;
   sessionLogs: SessionLog[];
@@ -90,6 +98,75 @@ export const useRoutineStore = create<RoutineState>()(
     (set, get) => ({
       exercises: (seedExercises as Exercise[]).map((e) => ({ ...e, is_default: true })),
       routines: defaultSeedRoutines,
+      pendingRoutineIds: [],
+      syncedRoutineIds: [],
+      deletedRoutineIds: [],
+      routineSyncError: null,
+      isSyncingRoutines: false,
+      syncRoutineCatalog: async () => {
+        const user = useUserStore.getState().currentUser;
+        if (!user?.uid || !useUserStore.getState().isAuthenticated) return false;
+        const existing = routineSyncTasks.get(user.uid);
+        if (existing) {
+          await existing;
+          return useUserStore.getState().currentUser?.uid === user.uid ? get().syncRoutineCatalog() : false;
+        }
+        const task = (async () => {
+          set({ isSyncingRoutines: true, routineSyncError: null });
+          try {
+            if (user.isAdmin) {
+              const seedIds = new Set(defaultSeedRoutines.map((routine) => routine.id));
+              // Migrate this administrator's locally created routines on first sync.
+              const pending = get().routines.filter((routine) => !get().deletedRoutineIds.includes(routine.id) &&
+                (get().pendingRoutineIds.includes(routine.id) || (!seedIds.has(routine.id) &&
+                  !get().syncedRoutineIds.includes(routine.id) && (routine.user_id === user.uid ||
+                    routine.created_by?.toLowerCase() === user.username.toLowerCase()))));
+              for (const routine of pending) {
+                if (useUserStore.getState().currentUser?.uid !== user.uid) return false;
+                await saveCloudRoutine(routine, user.uid!);
+                set((state) => ({
+                  syncedRoutineIds: [...new Set([...state.syncedRoutineIds, routine.id])],
+                  // Preserve a newer edit made while the older snapshot was uploading.
+                  pendingRoutineIds: state.routines.find((item) => item.id === routine.id) === routine
+                    ? state.pendingRoutineIds.filter((id) => id !== routine.id) : state.pendingRoutineIds,
+                }));
+              }
+              for (const id of get().deletedRoutineIds) {
+                if (useUserStore.getState().currentUser?.uid !== user.uid) return false;
+                await deleteCloudRoutine(id);
+              }
+            }
+            const remote = await loadCloudRoutines();
+            if (useUserStore.getState().currentUser?.uid !== user.uid) return false;
+            set((state) => {
+              const combined = new Map(state.routines.filter((routine) => !state.syncedRoutineIds.includes(routine.id) ||
+                state.pendingRoutineIds.includes(routine.id)).map((routine) => [routine.id, routine]));
+              remote.forEach((routine) => {
+                if (!state.pendingRoutineIds.includes(routine.id)) combined.set(routine.id, routine);
+              });
+              // Seed defaults remain available even when they have no cloud document.
+              defaultSeedRoutines.forEach((routine) => { if (!combined.has(routine.id)) combined.set(routine.id, routine); });
+              const routines = [...combined.values()].filter((routine) => !state.deletedRoutineIds.includes(routine.id));
+              const account = useUserStore.getState().registeredAccounts.find((item) => item.profileId === user.uid);
+              const assigned = routines.find((routine) => routine.id === account?.assignedRoutineId);
+              return {
+                routines,
+                activeRoutine: assigned || routines.find((routine) => routine.id === state.activeRoutine?.id) || routines[0] || null,
+                syncedRoutineIds: [...new Set([...state.syncedRoutineIds, ...remote.map((routine) => routine.id)])],
+              };
+            });
+            return true;
+          } catch (error) {
+            console.warn('Could not synchronize routine catalog:', error);
+            if (useUserStore.getState().currentUser?.uid === user.uid) set({ routineSyncError: 'No se pudieron sincronizar las rutinas. Los cambios locales se conservan; reintenta antes de cerrar el navegador.' });
+            return false;
+          } finally {
+            if (useUserStore.getState().currentUser?.uid === user.uid) set({ isSyncingRoutines: false });
+          }
+        })();
+        routineSyncTasks.set(user.uid, task);
+        try { return await task; } finally { routineSyncTasks.delete(user.uid); }
+      },
       activeRoutine:
         defaultSeedRoutines.find((r) => r.id === 'routine-cristian-aguilera') || defaultSeedRoutines[0],
       activeDayIndex: 0,
@@ -179,11 +256,13 @@ export const useRoutineStore = create<RoutineState>()(
         set((state) => ({
           routines: [newRoutine, ...state.routines.filter((r) => r.id !== newRoutine.id)],
           activeRoutine: newRoutine,
+          pendingRoutineIds: useUserStore.getState().currentUser?.isAdmin ? [...get().pendingRoutineIds, newRoutine.id] : get().pendingRoutineIds,
           activeDayIndex: 0,
           activeSession: initialSessionState,
         }));
 
         // Fire async sync if configured
+        void get().syncRoutineCatalog();
         get().syncRoutineToSupabase(newRoutine);
 
         return newRoutine;
@@ -203,12 +282,14 @@ export const useRoutineStore = create<RoutineState>()(
           const updatedRoutines = [formattedRoutine, ...state.routines.filter((r) => r.id !== formattedRoutine.id)];
           return {
             routines: updatedRoutines,
+            pendingRoutineIds: currentUser?.isAdmin ? [...new Set([...state.pendingRoutineIds, formattedRoutine.id])] : state.pendingRoutineIds,
             activeRoutine: makeActive ? formattedRoutine : state.activeRoutine || formattedRoutine,
             activeDayIndex: 0,
             activeSession: makeActive ? initialSessionState : state.activeSession,
           };
         });
 
+        void get().syncRoutineCatalog();
         get().syncRoutineToSupabase(formattedRoutine);
       },
 
@@ -224,10 +305,12 @@ export const useRoutineStore = create<RoutineState>()(
           const isActive = state.activeRoutine?.id === routineId;
           return {
             routines: updatedRoutines,
+            pendingRoutineIds: useUserStore.getState().currentUser?.isAdmin ? [...new Set([...state.pendingRoutineIds, routineId])] : state.pendingRoutineIds,
             activeRoutine: isActive ? updatedRoutine : state.activeRoutine,
           };
         });
 
+        void get().syncRoutineCatalog();
         get().syncRoutineToSupabase(updatedRoutine);
       },
 
@@ -319,10 +402,12 @@ export const useRoutineStore = create<RoutineState>()(
           const nextActive = state.activeRoutine?.id === routineId ? (remainingRoutines[0] || null) : state.activeRoutine;
           return {
             routines: remainingRoutines,
+            deletedRoutineIds: useUserStore.getState().currentUser?.isAdmin ? [...new Set([...state.deletedRoutineIds, routineId])] : state.deletedRoutineIds,
             activeRoutine: nextActive,
             activeDayIndex: 0,
           };
         });
+        void get().syncRoutineCatalog();
         return true;
       },
 
@@ -339,7 +424,7 @@ export const useRoutineStore = create<RoutineState>()(
         if (target) {
           const currentUser = useUserStore.getState().currentUser;
           if (currentUser?.username) {
-            useUserStore.getState().assignRoutineToAccount(currentUser.username, target.id);
+            void useUserStore.getState().assignRoutineToAccount(currentUser.username, target.id).catch(() => {});
           }
           set({
             activeRoutine: target,
@@ -912,6 +997,8 @@ export const useRoutineStore = create<RoutineState>()(
       name: 'fitplan_routine_storage',
       onRehydrateStorage: () => (state) => {
         if (state) {
+          state.isSyncingRoutines = false;
+          state.routineSyncError = null;
           state.isSyncingSessions = false;
           state.sessionSyncUserId = null;
           state.sessionSyncError = null;
@@ -926,7 +1013,7 @@ export const useRoutineStore = create<RoutineState>()(
           // Always ensure Cristian Aguilera routine is up to date and present
           if (cristianOfficial) {
             state.routines = (state.routines || []).map((r) =>
-              r.id === 'routine-cristian-aguilera' ? cristianOfficial : r
+              r.id === 'routine-cristian-aguilera' && !state.syncedRoutineIds?.includes(r.id) && !state.pendingRoutineIds?.includes(r.id) ? cristianOfficial : r
             );
           }
 
