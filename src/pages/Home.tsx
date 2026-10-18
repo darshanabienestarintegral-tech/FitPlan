@@ -27,7 +27,8 @@ export const Home: React.FC = () => {
   const cancelSession = useRoutineStore((s) => s.cancelSession);
   const createOrRegenerateRoutine = useRoutineStore((s) => s.createOrRegenerateRoutine);
   const getStats = useRoutineStore((s) => s.getStats);
-  const sessionLogs = useRoutineStore((s) => s.sessionLogs);
+  const allSessionLogs = useRoutineStore((s) => s.sessionLogs);
+  const sessionLogs = allSessionLogs.filter((log) => log.user_id === (currentUser?.uid || profile?.id));
 
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);

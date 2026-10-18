@@ -13,7 +13,8 @@ export const Progress: React.FC = () => {
   const currentUser = useUserStore((s) => s.currentUser);
   const logout = useUserStore((s) => s.logout);
   const resetUser = useUserStore((s) => s.resetUser);
-  const sessionLogs = useRoutineStore((s) => s.sessionLogs);
+  const allSessionLogs = useRoutineStore((s) => s.sessionLogs);
+  const sessionLogs = allSessionLogs.filter((log) => log.user_id === (currentUser?.uid || profile?.id));
   const deleteSessionLog = useRoutineStore((s) => s.deleteSessionLog);
   const activeRoutine = useRoutineStore((s) => s.activeRoutine);
   const seedSampleWeeklyLogs = useRoutineStore((s) => s.seedSampleWeeklyLogs);
