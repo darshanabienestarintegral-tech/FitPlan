@@ -123,7 +123,7 @@ export const useRoutineStore = create<RoutineState>()(
                     routine.created_by?.toLowerCase() === user.username.toLowerCase()))));
               for (const routine of pending) {
                 if (useUserStore.getState().currentUser?.uid !== user.uid) return false;
-                await saveCloudRoutine(routine, user.uid!);
+                await saveCloudRoutine(routine, user.uid!, get().exercises);
                 set((state) => ({
                   syncedRoutineIds: [...new Set([...state.syncedRoutineIds, routine.id])],
                   // Preserve a newer edit made while the older snapshot was uploading.
@@ -149,8 +149,11 @@ export const useRoutineStore = create<RoutineState>()(
               const routines = [...combined.values()].filter((routine) => !state.deletedRoutineIds.includes(routine.id));
               const account = useUserStore.getState().registeredAccounts.find((item) => item.profileId === user.uid);
               const assigned = routines.find((routine) => routine.id === account?.assignedRoutineId);
+              const exerciseLibrary = new Map(state.exercises.map((exercise) => [exercise.id, exercise]));
+              remote.flatMap((routine) => routine.exercise_library || []).forEach((exercise) => exerciseLibrary.set(exercise.id, exercise));
               return {
                 routines,
+                exercises: [...exerciseLibrary.values()],
                 activeRoutine: assigned || routines.find((routine) => routine.id === state.activeRoutine?.id) || routines[0] || null,
                 syncedRoutineIds: [...new Set([...state.syncedRoutineIds, ...remote.map((routine) => routine.id)])],
               };

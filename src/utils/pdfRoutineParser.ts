@@ -1,3 +1,6 @@
+import { normalizeMatch, findBestExerciseMatch } from './pdfExerciseMatching';
+export { findBestExerciseMatch } from './pdfExerciseMatching';
+import { parseProtocolDays } from './protocolPdfParser';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import pdfjsWorker from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 import { Exercise, Goal, Difficulty, Equipment, MuscleGroup, Routine, RoutineDay, RoutineExerciseConfig } from '../types';
@@ -17,6 +20,8 @@ export interface ParsedPdfExercise {
   sets: number;
   reps: string | number;
   restSeconds: number;
+  restLabel?: string;
+  notes?: string;
 }
 
 export interface ParsedPdfDay {
@@ -35,56 +40,7 @@ export interface ParsedPdfRoutine {
   sessionDuration: number;
   days: ParsedPdfDay[];
   rawTextPreview: string;
-}
-
-function normalizeMatch(str: string): string {
-  return str
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '');
-}
-
-export function findBestExerciseMatch(rawName: string, exercises: Exercise[]): Exercise | undefined {
-  const normRaw = normalizeMatch(rawName);
-
-  // 1. Exact normalized match
-  const exact = exercises.find((e) => normalizeMatch(e.name) === normRaw);
-  if (exact) return exact;
-
-  // 2. Prefix / Ellipsis matching (e.g. "Peso Muerto Rumano con Mancuern..." -> "Peso Muerto Rumano con Mancuernas")
-  const cleanPrefix = rawName.replace(/\.{2,}$/, '').trim();
-  const normPrefix = normalizeMatch(cleanPrefix);
-  if (normPrefix.length >= 6) {
-    const prefixMatch = exercises.find((e) => {
-      const eNorm = normalizeMatch(e.name);
-      return eNorm.startsWith(normPrefix) || normPrefix.startsWith(eNorm) || eNorm.includes(normPrefix);
-    });
-    if (prefixMatch) return prefixMatch;
-  }
-
-  // 3. Keyword matching (e.g. "Sentadilla Goblet", "Hip Thrust", "Bicicleta Estática")
-  const keywords = rawName
-    .split(/[\s/+,]+/)
-    .filter((w) => w.length >= 4)
-    .map((w) => normalizeMatch(w));
-
-  let bestScore = 0;
-  let bestCandidate: Exercise | undefined = undefined;
-
-  for (const ex of exercises) {
-    const eNorm = normalizeMatch(ex.name);
-    let score = 0;
-    for (const kw of keywords) {
-      if (eNorm.includes(kw)) score += 3;
-    }
-    if (score > bestScore && score >= 3) {
-      bestScore = score;
-      bestCandidate = ex;
-    }
-  }
-
-  return bestCandidate;
+  warnings?: string[];
 }
 
 export function parseExerciseLine(line: string): {
@@ -205,6 +161,23 @@ export async function parseRoutineFromPdf(
   existingExercises: Exercise[]
 ): Promise<ParsedPdfRoutine> {
   const allLines = await extractTextLinesFromPdf(file);
+  const protocolDays = parseProtocolDays(allLines);
+  if (protocolDays) {
+    for (const day of protocolDays) for (const item of day.exercises) {
+      item.matchedExerciseId = findBestExerciseMatch(item.name, existingExercises)?.id;
+    }
+    return {
+      routineName: file instanceof File ? file.name.normalize('NFKC').replace(/\.pdf$/i, '').replace(/^\d+-/, '') : 'Protocolo importado',
+      athleteName: '', goal: 'hipertrofia', difficulty: 'intermedio', daysPerWeek: protocolDays.length,
+      sessionDuration: 60, days: protocolDays, rawTextPreview: allLines.slice(0, 15).join('\n'),
+      warnings: [
+        'Objetivo y nivel son etiquetas iniciales de la app: revísalas, no están fijadas para todo el protocolo.',
+        'El PDF indica 45–60 min por sesión. Se usa 60 min como etiqueta de duración.',
+        'Se conserva el rango general de descanso de fuerza (60–90 s); el temporizador usa 60 s. La preparación sin descanso especificado no inicia temporizador.',
+        'Revisa con el profesional responsable las indicaciones de rehabilitación e intensidad antes de usar la rutina.',
+      ],
+    };
+  }
 
   let routineName = 'Rutina Importada desde PDF';
   let athleteName = '';
@@ -355,15 +328,10 @@ export function convertParsedRoutineToAppRoutine(
   createdBy: string,
   isDefault: boolean,
   existingExercises: Exercise[],
-  onNewExercisesCreated?: (newExercises: Exercise[]) => void
+  onNewExercisesCreated?: (newExercises: Exercise[]) => void,
+  routineIdOverride?: string
 ): Routine {
-  // If this routine is for Cristian Aguilera, keep the standard ID or unique PDF ID
-  const isCristian =
-    assignedUserId === 'cristian_aguilera' ||
-    parsed.athleteName.toLowerCase().includes('cristian') ||
-    parsed.routineName.toLowerCase().includes('cristian');
-
-  const routineId = isCristian ? 'routine-cristian-aguilera' : `routine-pdf-${Date.now()}`;
+  const routineId = routineIdOverride || `routine-pdf-${crypto.randomUUID()}`;
   const newlyCreatedExercises: Exercise[] = [];
 
   const days: RoutineDay[] = parsed.days.map((d, dIdx) => {
@@ -372,7 +340,7 @@ export function convertParsedRoutineToAppRoutine(
     const exerciseConfigs: RoutineExerciseConfig[] = [];
 
     d.exercises.forEach((exItem, exIdx) => {
-      let exerciseId = exItem.matchedExerciseId;
+      let exerciseId = exItem.matchedExerciseId || findBestExerciseMatch(exItem.name, existingExercises)?.id || newlyCreatedExercises.find((exercise) => normalizeMatch(exercise.name) === normalizeMatch(exItem.name))?.id;
 
       if (!exerciseId) {
         // Create custom exercise on the fly
@@ -396,6 +364,8 @@ export function convertParsedRoutineToAppRoutine(
         sets: exItem.sets,
         reps: exItem.reps,
         restSeconds: exItem.restSeconds,
+        restLabel: exItem.restLabel,
+        notes: exItem.notes,
       });
     });
 

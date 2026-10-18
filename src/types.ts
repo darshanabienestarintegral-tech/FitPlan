@@ -49,6 +49,8 @@ export interface RoutineExerciseConfig {
   sets: number;
   reps: number | string;
   restSeconds: number;
+  restLabel?: string;
+  notes?: string;
   alternativeExerciseIds?: string[]; // Hasta 3 ejercicios alternativos por si no cuentan con la máquina o equipo
 }
 
@@ -75,6 +77,7 @@ export interface Routine {
   session_duration: number;
   created_at: string;
   days: RoutineDay[];
+  exercise_library?: Exercise[];
 }
 
 export interface SessionLog {

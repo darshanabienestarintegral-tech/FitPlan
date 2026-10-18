@@ -124,7 +124,7 @@ export const LiveWorkoutView: React.FC<LiveWorkoutViewProps> = ({ onMinimize, on
     }
 
     // Automatically trigger full-screen rest timer
-    startRestTimer(config.restSeconds, `${exercise.name} (Serie ${setNumber})`, true);
+    if (config.restSeconds > 0) startRestTimer(config.restSeconds, `${exercise.name} (Serie ${setNumber})`, true);
   };
 
   const handleAddExtraSet = () => {
@@ -314,6 +314,7 @@ export const LiveWorkoutView: React.FC<LiveWorkoutViewProps> = ({ onMinimize, on
             {exercise.description}
           </p>
 
+          {config.notes && <p className="text-xs text-[#78716C] mt-3">{config.notes}</p>}
           {/* Rest and Reps Target Bar */}
           <div className="mt-3.5 p-3 bg-[#FAF7F2] rounded-2xl border border-[#EAE3D9] flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-3">
@@ -322,7 +323,7 @@ export const LiveWorkoutView: React.FC<LiveWorkoutViewProps> = ({ onMinimize, on
                   Objetivo Reps
                 </span>
                 <span className="text-sm font-black text-[#1C1917] font-mono">
-                  {config.reps} repeticiones
+                  {config.reps}{/min|seg|\bs\b/i.test(String(config.reps)) ? '' : ' repeticiones'}
                 </span>
               </div>
               <div className="w-px h-8 bg-[#EAE3D9]" />
@@ -331,11 +332,12 @@ export const LiveWorkoutView: React.FC<LiveWorkoutViewProps> = ({ onMinimize, on
                   Descanso
                 </span>
                 <button
+                  disabled={config.restSeconds <= 0}
                   onClick={() => startRestTimer(config.restSeconds, exercise.name, true)}
                   className="text-xs font-bold text-[#9E5325] hover:underline flex items-center gap-1 font-heading uppercase"
                 >
                   <Timer className="w-3.5 h-3.5" />
-                  <span>{config.restSeconds} segundos</span>
+                  <span>{config.restLabel || `${config.restSeconds} segundos`}</span>
                 </button>
               </div>
             </div>
