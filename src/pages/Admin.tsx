@@ -200,7 +200,7 @@ export const Admin: React.FC = () => {
     setEditingExercise(null);
   };
 
-  const handleCreateRoutineForUser = (acc: UserAccount) => {
+  const handleCreateRoutineForUser = async (acc: UserAccount) => {
     const newRoutineId = `routine-${acc.username}-${Date.now()}`;
     const athleteDisplayName = acc.fullName || acc.username;
     const newDraft: Routine = {
@@ -241,20 +241,28 @@ export const Admin: React.FC = () => {
       ],
     };
     addCustomRoutine(newDraft, false);
-    assignRoutineToAccount(acc.username, newRoutineId);
+    if (!await handleAssignRoutineToUser(acc.username, newRoutineId)) return;
     setEditingRoutine(newDraft);
     setIsCreatorModalOpen(true);
     setAthleteSuccessMessage(`Nueva rutina creada para ${athleteDisplayName}. Modifica sus ejercicios y días.`);
     setTimeout(() => setAthleteSuccessMessage(''), 3000);
   };
 
-  const handleAssignRoutineToUser = (username: string, routineId: string) => {
-    assignRoutineToAccount(username, routineId);
-    setAthleteSuccessMessage(`Rutina asignada exitosamente a ${username}`);
-    setTimeout(() => setAthleteSuccessMessage(''), 2500);
+  const handleAssignRoutineToUser = async (username: string, routineId: string): Promise<boolean> => {
+    setAthleteSuccessMessage('');
+    setAthleteErrorMessage('');
+    try {
+      if (!await useRoutineStore.getState().syncRoutineCatalog()) throw new Error('No se pudo guardar la rutina en Internet. Reintenta.');
+      await assignRoutineToAccount(username, routineId);
+      setAthleteSuccessMessage(`Rutina guardada en Internet y asignada a ${username}`);
+      return true;
+    } catch (error) {
+      setAthleteErrorMessage(error instanceof Error ? error.message : 'No se pudo asignar la rutina.');
+      return false;
+    }
   };
 
-  const handleDuplicateRoutineForUser = (baseRoutine: Routine, acc: UserAccount) => {
+  const handleDuplicateRoutineForUser = async (baseRoutine: Routine, acc: UserAccount) => {
     const dupId = `routine-${acc.username}-${Date.now()}`;
     const athleteDisplayName = acc.fullName || acc.username;
     const duplicated: Routine = {
@@ -270,7 +278,7 @@ export const Admin: React.FC = () => {
       })),
     };
     addCustomRoutine(duplicated, false);
-    assignRoutineToAccount(acc.username, dupId);
+    if (!await handleAssignRoutineToUser(acc.username, dupId)) return;
     setEditingRoutine(duplicated);
     setIsCreatorModalOpen(true);
     setAthleteSuccessMessage(`Rutina duplicada y asignada a ${athleteDisplayName}`);
@@ -895,7 +903,9 @@ export const Admin: React.FC = () => {
               </div>
 
               <button
-                onClick={() => setShowCreateUserModal(true)}
+                onClick={() => currentUser?.uid
+                  ? setAthleteSuccessMessage('Para agregar un alumno, pídele que abra FitPlan y se registre con «Nuevo usuario». Después pulsa «Actualizar rutinas y usuarios» arriba.')
+                  : setShowCreateUserModal(true)}
                 className="self-start sm:self-auto bg-gradient-to-r from-[#9E5325] to-[#7B3A13] text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 font-heading uppercase shrink-0 shadow-sm"
               >
                 <UserPlus className="w-3.5 h-3.5" />
@@ -911,6 +921,7 @@ export const Admin: React.FC = () => {
               </div>
             )}
 
+            {athleteErrorMessage && <p role="alert" className="p-3 bg-rose-50 text-rose-800 rounded-xl text-xs">{athleteErrorMessage}</p>}
             {/* Search Athletes */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9E5325]" />
@@ -988,7 +999,9 @@ export const Admin: React.FC = () => {
                       </div>
 
                       <button
-                        onClick={() => handleDeleteAthleteAccount(acc.username)}
+                        onClick={() => currentUser?.uid
+                          ? setAthleteErrorMessage('La eliminación de cuentas se gestiona desde Firebase Authentication; no se eliminará solo de este navegador.')
+                          : handleDeleteAthleteAccount(acc.username)}
                         className="p-1.5 text-[#A8A29E] hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors shrink-0"
                         title={`Eliminar usuario ${acc.username}`}
                       >
@@ -1176,7 +1189,7 @@ export const Admin: React.FC = () => {
 
             {registeredAccounts.length === 0 && (
               <div className="bg-white p-6 rounded-2xl border border-[#EAE3D9] text-center text-xs text-[#78716C]">
-                Aún no hay atletas registrados. Haz clic en "+ Nuevo Atleta" para dar de alta al primer usuario.
+                No hay usuarios disponibles. Pide al alumno que se registre en FitPlan y pulsa «Actualizar rutinas y usuarios».
               </div>
             )}
           </div>

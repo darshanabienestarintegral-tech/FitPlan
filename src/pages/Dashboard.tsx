@@ -106,7 +106,7 @@ export const Dashboard: React.FC = () => {
 
       if (routineTab === 'assigned') {
         // Show assigned, active, and custom/athlete routines so users can use them
-        return isDirectlyAssignedOrActive || isPersonal;
+        return Boolean(isDirectlyAssignedOrActive);
       }
       if (routineTab === 'general') {
         return r.is_default && !isPersonal;

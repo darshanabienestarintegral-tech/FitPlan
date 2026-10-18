@@ -12,25 +12,31 @@ const getFirestore = mock(() => ({}));
 const createUser = mock(async () => ({ user: { uid: 'cloud-user', email: 'test@darshanagym.local' } }));
 const signIn = mock(async () => ({ user: { uid: 'cloud-user', email: 'test@darshanagym.local' } }));
 const cloudSessions = new Map();
-const writeDocument = async (ref, data) => {
-  if (ref.path === 'session_logs') cloudSessions.set(ref.id, structuredClone(data));
-};
+const cloudRoutines = new Map();
+const cloudUsers = new Map();
+const table = (path) => ({ session_logs: cloudSessions, routines: cloudRoutines, users: cloudUsers })[path];
+const writeDocument = async (ref, data) => { table(ref.path).set(ref.id, structuredClone(data)); };
 const setDoc = mock(writeDocument);
-const getDocs = mock(async (request) => ({ docs: [...cloudSessions.entries()]
-  .filter(([, data]) => data.userId === request.constraint.value)
+const updateDoc = mock(async (ref, data) => {
+  if (!table(ref.path).has(ref.id)) throw new Error('not-found');
+  table(ref.path).set(ref.id, { ...table(ref.path).get(ref.id), ...structuredClone(data) });
+});
+const getDocs = mock(async (request) => ({ docs: [...table(request.path).entries()]
+  .filter(([, data]) => !request.constraint || data[request.constraint.field] === request.constraint.value)
   .map(([id, data]) => ({ id, data: () => structuredClone(data) })) }));
-const deleteDoc = mock(async (ref) => { cloudSessions.delete(ref.id); });
-const getDoc = mock(async () => ({ exists: () => false }));
+const deleteDoc = mock(async (ref) => { table(ref.path).delete(ref.id); });
+const getDoc = mock(async (ref) => ({ exists: () => table(ref.path).has(ref.id), data: () => structuredClone(table(ref.path).get(ref.id)) }));
 mock.module('firebase/app', () => ({ initializeApp: () => ({}), getApps: () => [], getApp: () => ({}) }));
 mock.module('firebase/auth', () => ({ getAuth: () => ({}), createUserWithEmailAndPassword: createUser,
   signInWithEmailAndPassword: signIn, signOut: async () => {} }));
-mock.module('firebase/firestore', () => ({ getFirestore, doc: (_db, path, id) => ({ path, id }), getDoc, setDoc, deleteDoc,
+mock.module('firebase/firestore', () => ({ getFirestore, doc: (_db, path, id) => ({ path, id }), getDoc, setDoc, updateDoc, deleteDoc,
   collection: (_db, path) => ({ path }), query: (ref, constraint) => ({ ...ref, constraint }),
   where: (field, operator, value) => ({ field, operator, value }), getDocFromServer: getDoc, getDocs }));
 mock.module('../src/lib/supabase', () => ({ supabase: {}, isSupabaseConfigured: false }));
 const { saveUserProfile, loginWithFirebase } = await import('../src/lib/firebase');
 const { useUserStore } = await import('../src/store/useUserStore');
 const { useRoutineStore } = await import('../src/store/useRoutineStore');
+const seedRoutines = useRoutineStore.getState().routines;
 
 beforeEach(() => {
   storage.clear();
@@ -38,8 +44,11 @@ beforeEach(() => {
     profile: null, isLoading: false, error: null });
   createUser.mockClear(); setDoc.mockClear(); signIn.mockClear();
   setDoc.mockImplementation(writeDocument);
-  cloudSessions.clear();
-  useRoutineStore.setState({ sessionLogs: [], syncedSessionLogIds: [], deletedSessionLogs: {},
+  cloudSessions.clear(); cloudUsers.clear(); cloudRoutines.clear();
+  updateDoc.mockClear();
+  useRoutineStore.setState({ routines: seedRoutines, activeRoutine: seedRoutines[0], pendingRoutineIds: [],
+    syncedRoutineIds: [], deletedRoutineIds: [], routineSyncError: null, isSyncingRoutines: false,
+    sessionLogs: [], syncedSessionLogIds: [], deletedSessionLogs: {},
     sessionSyncError: null, sessionSyncUserId: null, isSyncingSessions: false });
 });
 afterEach(() => jest.useRealTimers());
@@ -166,4 +175,110 @@ test('repeated syncs and retries never duplicate a completed session', async () 
   await Promise.all([useRoutineStore.getState().syncSessionHistory(), useRoutineStore.getState().syncSessionHistory()]);
   expect(cloudSessions.size).toBe(1);
   expect(useRoutineStore.getState().sessionLogs).toHaveLength(1);
+});
+
+const cloudProfile = (uid, username, role = 'usuario') => ({ uid, username, displayName: username,
+  email: `${username}@darshanagym.local`, role, createdAt: new Date().toISOString() });
+function signInAdmin() {
+  signInLocally('admin-uid');
+  useUserStore.setState({ currentUser: { uid: 'admin-uid', username: 'Jamil', role: 'admin', isAdmin: true } });
+}
+function adminRoutine() {
+  return { ...seedRoutines[0], id: 'routine-admin-test', user_id: 'admin-uid', created_by: 'Jamil',
+    name: 'Prueba Darshana', days: seedRoutines[0].days.map((day) => ({ ...day,
+      exercise_configs: day.exercise_configs.map((config) => ({ ...config, sets: 3 })) })) };
+}
+test('administrator roster loads all Firebase accounts with current roles', async () => {
+  signInAdmin();
+  cloudUsers.set('admin-uid', cloudProfile('admin-uid', 'Jamil', 'admin'));
+  cloudUsers.set('cloud-user', cloudProfile('cloud-user', 'prueba_fitplan'));
+  await useUserStore.getState().syncCloudAccounts();
+  expect(useUserStore.getState().registeredAccounts).toHaveLength(2);
+  expect(useUserStore.getState().registeredAccounts.find((account) => account.username === 'Jamil').role).toBe('admin');
+  expect(useUserStore.getState().registeredAccounts.find((account) => account.username === 'prueba_fitplan').profileId).toBe('cloud-user');
+});
+test('regular accounts load only their own profile metadata', async () => {
+  signInLocally();
+  cloudUsers.set('cloud-user', cloudProfile('cloud-user', 'test'));
+  cloudUsers.set('other-user', cloudProfile('other-user', 'other'));
+  await useUserStore.getState().syncCloudAccounts();
+  expect(useUserStore.getState().registeredAccounts).toHaveLength(1);
+  expect(useUserStore.getState().registeredAccounts[0].profileId).toBe('cloud-user');
+});
+test('admin-created routine and assignment survive a fresh student browser', async () => {
+  signInAdmin();
+  cloudUsers.set('admin-uid', cloudProfile('admin-uid', 'Jamil', 'admin'));
+  cloudUsers.set('cloud-user', cloudProfile('cloud-user', 'prueba_fitplan'));
+  await useUserStore.getState().syncCloudAccounts();
+  useRoutineStore.getState().addCustomRoutine(adminRoutine(), false);
+  expect(await useRoutineStore.getState().syncRoutineCatalog()).toBe(true);
+  await useUserStore.getState().assignRoutineToAccount('prueba_fitplan', 'routine-admin-test');
+  expect(cloudUsers.get('cloud-user').assignedRoutineId).toBe('routine-admin-test');
+  expect(cloudUsers.get('cloud-user').role).toBe('usuario');
+  expect(cloudRoutines.get('routine-admin-test').createdBy).toBe('admin-uid');
+  // A fresh device has no administrator catalog or locally assigned account.
+  signInLocally();
+  useUserStore.setState({ registeredAccounts: [] });
+  useRoutineStore.setState({ routines: seedRoutines, activeRoutine: seedRoutines[0], syncedRoutineIds: [], pendingRoutineIds: [] });
+  await useUserStore.getState().syncCloudAccounts();
+  expect(await useRoutineStore.getState().syncRoutineCatalog()).toBe(true);
+  expect(useRoutineStore.getState().activeRoutine.id).toBe('routine-admin-test');
+  expect(useRoutineStore.getState().activeRoutine.days[0].exercise_configs[0].sets).toBe(3);
+});
+test('failed cloud assignment does not claim success or update the local assignment', async () => {
+  signInAdmin();
+  cloudUsers.set('cloud-user', cloudProfile('cloud-user', 'prueba_fitplan'));
+  await useUserStore.getState().syncCloudAccounts();
+  updateDoc.mockRejectedValueOnce(new Error('permission-denied'));
+  await expect(useUserStore.getState().assignRoutineToAccount('prueba_fitplan', 'routine-admin-test')).rejects.toThrow();
+  expect(useUserStore.getState().registeredAccounts[0].assignedRoutineId).toBeUndefined();
+  expect(useUserStore.getState().accountsSyncError).toContain('No se pudo guardar');
+});
+test('regular users cannot assign a routine to another account', async () => {
+  signInLocally();
+  useUserStore.setState({ registeredAccounts: [{ username: 'other', profileId: 'other-user' }] });
+  await expect(useUserStore.getState().assignRoutineToAccount('other', 'any-routine')).rejects.toThrow();
+  expect(updateDoc).not.toHaveBeenCalled();
+});
+test('local administrator routines are migrated without overwriting them with default seeds', async () => {
+  signInAdmin();
+  const routine = adminRoutine();
+  useRoutineStore.setState({ routines: [...seedRoutines, routine] });
+  await useRoutineStore.getState().syncRoutineCatalog();
+  expect(cloudRoutines.get(routine.id).name).toBe('Prueba Darshana');
+  useRoutineStore.setState({ routines: seedRoutines, syncedRoutineIds: [], pendingRoutineIds: [] });
+  await useRoutineStore.getState().syncRoutineCatalog();
+  expect(useRoutineStore.getState().routines.find((item) => item.id === routine.id).days[0].exercise_configs[0].sets).toBe(3);
+});
+test('cloud routine edits and deletes survive catalog reloads', async () => {
+  signInAdmin();
+  useRoutineStore.getState().addCustomRoutine(adminRoutine(), false);
+  await useRoutineStore.getState().syncRoutineCatalog();
+  const updated = { ...useRoutineStore.getState().routines.find((item) => item.id === 'routine-admin-test'), name: 'Edited routine' };
+  useRoutineStore.getState().updateRoutine(updated.id, updated);
+  await useRoutineStore.getState().syncRoutineCatalog();
+  expect(cloudRoutines.get(updated.id).name).toBe('Edited routine');
+  expect(useRoutineStore.getState().deleteRoutine(updated.id)).toBe(true);
+  await useRoutineStore.getState().syncRoutineCatalog();
+  expect(cloudRoutines.has(updated.id)).toBe(false);
+});
+
+test('failed routine upload retains pending edits for a successful retry', async () => {
+  signInAdmin();
+  setDoc.mockImplementation(async () => { throw new Error('offline'); });
+  useRoutineStore.getState().addCustomRoutine(adminRoutine(), false);
+  expect(await useRoutineStore.getState().syncRoutineCatalog()).toBe(false);
+  expect(useRoutineStore.getState().pendingRoutineIds).toContain('routine-admin-test');
+  expect(useRoutineStore.getState().routines.some((routine) => routine.id === 'routine-admin-test')).toBe(true);
+  expect(useRoutineStore.getState().routineSyncError).toContain('reintenta');
+  setDoc.mockImplementation(writeDocument);
+  expect(await useRoutineStore.getState().syncRoutineCatalog()).toBe(true);
+  expect(useRoutineStore.getState().pendingRoutineIds).not.toContain('routine-admin-test');
+  expect(cloudRoutines.size).toBe(1);
+});
+test('student catalog refresh never uploads pending administrator edits', async () => {
+  signInLocally();
+  useRoutineStore.setState({ routines: [...seedRoutines, adminRoutine()], pendingRoutineIds: ['routine-admin-test'] });
+  await useRoutineStore.getState().syncRoutineCatalog();
+  expect(cloudRoutines.size).toBe(0);
 });

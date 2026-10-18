@@ -124,6 +124,8 @@ export const RoutineDefinitionModal: React.FC<RoutineDefinitionModalProps> = ({
 
   const [activeDayIndex, setActiveDayIndex] = useState<number>(0);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [draftRoutineId, setDraftRoutineId] = useState(() => `routine-custom-${crypto.randomUUID()}`);
   const [successBanner, setSuccessBanner] = useState('');
 
   // Exercise Picker Drawer / Modal state
@@ -142,6 +144,8 @@ export const RoutineDefinitionModal: React.FC<RoutineDefinitionModalProps> = ({
   // Sync form state when modal opens or initialRoutine changes
   useEffect(() => {
     if (!isOpen) return;
+    setDraftRoutineId(`routine-custom-${crypto.randomUUID()}`);
+    setIsSaving(false);
     if (initialRoutine) {
       setRoutineName(initialRoutine.name);
       setGoal(initialRoutine.goal);
@@ -472,7 +476,7 @@ export const RoutineDefinitionModal: React.FC<RoutineDefinitionModalProps> = ({
       difficulty: 'intermedio',
       description: 'Ejercicio personalizado definido por el usuario.',
       is_default: false,
-      created_by: currentUser?.username || 'usuario',
+      created_by: initialRoutine?.created_by || currentUser?.username || 'usuario',
     };
     addExerciseToLibrary(newEx);
     handleAddExerciseToCurrentDay(newEx.id);
@@ -502,7 +506,8 @@ export const RoutineDefinitionModal: React.FC<RoutineDefinitionModalProps> = ({
   // ==========================================
   // SAVE ROUTINE
   // ==========================================
-  const handleSaveRoutine = () => {
+  const handleSaveRoutine = async () => {
+    if (isSaving) return;
     setErrorMsg('');
     if (!routineName.trim()) {
       setErrorMsg('Por favor ingresa un nombre para tu rutina.');
@@ -527,7 +532,7 @@ export const RoutineDefinitionModal: React.FC<RoutineDefinitionModalProps> = ({
       }
     }
 
-    const routineId = initialRoutine ? initialRoutine.id : `routine-custom-${Date.now()}`;
+    const routineId = initialRoutine ? initialRoutine.id : draftRoutineId;
 
     // Build RoutineDay array with automatic equipment alternatives
     const builtDays: RoutineDay[] = days.map((d, dIdx) => {
@@ -575,7 +580,7 @@ export const RoutineDefinitionModal: React.FC<RoutineDefinitionModalProps> = ({
 
     const finalRoutine: Routine = {
       id: routineId,
-      user_id: profile?.id || currentUser?.username || 'usuario',
+      user_id: initialRoutine?.user_id || profile?.id || currentUser?.username || 'usuario',
       created_by: currentUser?.username || 'usuario',
       is_default: Boolean(isAdmin && isDefaultRoutine),
       name: routineName.trim(),
@@ -588,11 +593,21 @@ export const RoutineDefinitionModal: React.FC<RoutineDefinitionModalProps> = ({
       days: builtDays,
     };
 
+    setIsSaving(true);
     if (initialRoutine) {
       updateRoutine(finalRoutine.id, finalRoutine);
     } else {
       addCustomRoutine(finalRoutine, makeActiveImmediately);
     }
+    if (currentUser?.uid && isAdmin) {
+      const saved = await useRoutineStore.getState().syncRoutineCatalog();
+      if (!saved) {
+        setIsSaving(false);
+        setErrorMsg('La rutina sigue en este navegador, pero no se pudo guardar en Internet. Reintenta antes de cerrar.');
+        return;
+      }
+    }
+    setIsSaving(false);
 
     try {
       confetti({
@@ -1243,11 +1258,12 @@ export const RoutineDefinitionModal: React.FC<RoutineDefinitionModalProps> = ({
             </button>
             <button
               type="button"
+              disabled={isSaving}
               onClick={handleSaveRoutine}
               className="flex-1 sm:flex-none min-h-[44px] px-6 bg-gradient-to-r from-[#9E5325] to-[#7B3A13] hover:from-[#8C4318] hover:to-[#6E320F] text-white font-bold text-xs uppercase tracking-wider font-heading rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95"
             >
               <Check className="w-4 h-4 stroke-[3px]" />
-              <span>Guardar y Asignar Rutina</span>
+              <span>{isSaving ? 'Guardando en Internet…' : 'Guardar rutina'}</span>
             </button>
           </div>
         </div>
