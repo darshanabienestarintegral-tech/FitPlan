@@ -20,7 +20,7 @@ import firebaseConfig from '../../firebase-applet-config.json';
 // Initialize Firebase App
 export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
 export type UserRole = 'admin' | 'usuario';
 
@@ -57,27 +57,33 @@ export async function validateFirebaseConnection(): Promise<boolean> {
 
 // Fetch user profile from Firestore /users/{uid}
 export async function fetchUserProfile(uid: string): Promise<FirebaseUserProfile | null> {
+  const userDocRef = doc(db, 'users', uid);
+  const snap = await withFirebaseTimeout(getDoc(userDocRef));
+  return snap.exists() ? snap.data() as FirebaseUserProfile : null;
+}
+
+// A disconnected Firestore client can leave a write pending indefinitely.
+// A timeout does not cancel a queued write; users can sign in to recover an
+// account that Auth already created, even if profile saving timed out.
+async function withFirebaseTimeout<T>(operation: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(Object.assign(
+      new Error('Firebase no respondió. Comprueba tu conexión e intenta iniciar sesión.'),
+      { code: 'app/firebase-timeout' },
+    )), 15000);
+  });
   try {
-    const userDocRef = doc(db, 'users', uid);
-    const snap = await getDoc(userDocRef);
-    if (snap.exists()) {
-      return snap.data() as FirebaseUserProfile;
-    }
-    return null;
-  } catch (err) {
-    console.warn('Could not fetch user profile from Firestore:', err);
-    return null;
+    return await Promise.race([operation, timeout]);
+  } finally {
+    clearTimeout(timer!);
   }
 }
 
-// Save or update user profile with role in Firestore
+// Propagate save errors so the UI cannot report an incomplete registration as successful.
 export async function saveUserProfile(profile: FirebaseUserProfile): Promise<void> {
-  try {
-    const userDocRef = doc(db, 'users', profile.uid);
-    await setDoc(userDocRef, profile, { merge: true });
-  } catch (err) {
-    console.warn('Could not save user profile to Firestore:', err);
-  }
+  const userDocRef = doc(db, 'users', profile.uid);
+  await withFirebaseTimeout(setDoc(userDocRef, profile, { merge: true }));
 }
 
 // Fetch all registered users from Firestore
@@ -104,7 +110,7 @@ export async function registerWithFirebase(
   const cleanUsername = username.trim();
   const email = formatUsernameToEmail(cleanUsername);
 
-  const cred = await createUserWithEmailAndPassword(auth, email, pass);
+  const cred = await withFirebaseTimeout(createUserWithEmailAndPassword(auth, email, pass));
   const user = cred.user;
 
   const profile: FirebaseUserProfile = {
@@ -128,18 +134,17 @@ export async function loginWithFirebase(
   const clean = usernameOrEmail.trim();
   const email = formatUsernameToEmail(clean);
 
-  const cred = await signInWithEmailAndPassword(auth, email, pass);
+  const cred = await withFirebaseTimeout(signInWithEmailAndPassword(auth, email, pass));
   const user = cred.user;
 
   let profile = await fetchUserProfile(user.uid);
   if (!profile) {
-    const isCleanAdmin = clean.toLowerCase().includes('admin');
     profile = {
       uid: user.uid,
       username: clean,
       email: user.email || email,
       displayName: clean,
-      role: isCleanAdmin ? 'admin' : 'usuario',
+      role: 'usuario',
       createdAt: new Date().toISOString(),
     };
     await saveUserProfile(profile);
