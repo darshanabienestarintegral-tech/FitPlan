@@ -125,19 +125,10 @@ export const Dashboard: React.FC = () => {
     });
   }, [routines, currentUser, isAdmin, routineTab, registeredAccounts, activeRoutine]);
 
-  // Filter session logs for current user
-  const userSessionLogs = useMemo(() => {
-    if (isAdmin) return sessionLogs;
-    const currentUsername = currentUser?.username?.toLowerCase() || '';
-    const profileId = profile?.id || '';
-    return sessionLogs.filter(
-      (log) =>
-        !log.user_id ||
-        log.user_id.toLowerCase() === currentUsername ||
-        log.user_id === profileId ||
-        (currentUsername.includes('cristian') && log.user_id.includes('cristian'))
-    );
-  }, [sessionLogs, currentUser, profile, isAdmin]);
+  // Each account sees its own workout history, including on shared browsers.
+  const userSessionLogs = useMemo(() => sessionLogs.filter(
+    (log) => log.user_id === (currentUser?.uid || profile?.id)
+  ), [sessionLogs, currentUser?.uid, profile?.id]);
 
   const stats = getStats();
   const currentRoutineDay = activeRoutine?.days[activeDayIndex] || activeRoutine?.days[0];

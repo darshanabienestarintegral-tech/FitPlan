@@ -6,6 +6,9 @@ import { defaultSeedRoutines } from '../data/defaultRoutines';
 import { generateRoutine } from '../lib/routineGenerator';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useUserStore } from './useUserStore';
+import { saveCloudSession, loadCloudSessions, deleteCloudSession } from '../lib/sessionLogs';
+
+const sessionSyncTasks = new Map<string, Promise<void>>();
 
 interface WorkoutSessionState {
   routineDayId: string | null;
@@ -26,6 +29,12 @@ interface RoutineState {
   activeRoutine: Routine | null;
   activeDayIndex: number;
   sessionLogs: SessionLog[];
+  syncedSessionLogIds: string[];
+  deletedSessionLogs: Record<string, string>; // log ID -> owner UID
+  sessionSyncError: string | null;
+  sessionSyncUserId: string | null;
+  isSyncingSessions: boolean;
+  syncSessionHistory: () => Promise<void>;
   activeSession: WorkoutSessionState;
   isLiveWorkoutOpen: boolean;
   isFullScreenTimerOpen: boolean;
@@ -85,6 +94,65 @@ export const useRoutineStore = create<RoutineState>()(
         defaultSeedRoutines.find((r) => r.id === 'routine-cristian-aguilera') || defaultSeedRoutines[0],
       activeDayIndex: 0,
       sessionLogs: [],
+      syncedSessionLogIds: [],
+      deletedSessionLogs: {},
+      sessionSyncError: null,
+      sessionSyncUserId: null,
+      isSyncingSessions: false,
+
+      syncSessionHistory: async () => {
+        const uid = useUserStore.getState().currentUser?.uid;
+        if (!uid || !useUserStore.getState().isAuthenticated) return;
+        const existing = sessionSyncTasks.get(uid);
+        if (existing) {
+          await existing;
+          // A session may have been added while the previous request ran.
+          if (useUserStore.getState().currentUser?.uid === uid) await get().syncSessionHistory();
+          return;
+        }
+        const task = (async () => {
+          set({ isSyncingSessions: true, sessionSyncError: null, sessionSyncUserId: uid });
+          try {
+            const localLogs = get().sessionLogs.filter((log) =>
+              log.user_id === uid && !get().syncedSessionLogIds.includes(log.id) &&
+              get().deletedSessionLogs[log.id] !== uid);
+            for (const log of localLogs) {
+              if (useUserStore.getState().currentUser?.uid !== uid) return;
+              await saveCloudSession(log, uid);
+              set((state) => ({ syncedSessionLogIds: [...new Set([...state.syncedSessionLogIds, log.id])] }));
+            }
+            // Retain deletion markers locally so delayed reads never resurrect a removed log.
+            for (const [id, owner] of Object.entries(get().deletedSessionLogs)) {
+              if (owner !== uid) continue;
+              if (useUserStore.getState().currentUser?.uid !== uid) return;
+              await deleteCloudSession(id);
+            }
+            const remoteLogs = await loadCloudSessions(uid);
+            if (useUserStore.getState().currentUser?.uid !== uid) return;
+            set((state) => {
+              const pending = state.sessionLogs.filter((log) => log.user_id === uid &&
+                !state.syncedSessionLogIds.includes(log.id));
+              const merged = new Map(remoteLogs.map((log) => [log.id, log]));
+              pending.forEach((log) => merged.set(log.id, log));
+              const ownLogs = [...merged.values()].filter((log) => state.deletedSessionLogs[log.id] !== uid);
+              return {
+                sessionLogs: [...state.sessionLogs.filter((log) => log.user_id !== uid), ...ownLogs]
+                  .sort((a, b) => b.date.localeCompare(a.date)),
+                syncedSessionLogIds: [...new Set([...state.syncedSessionLogIds, ...remoteLogs.map((log) => log.id)])],
+              };
+            });
+          } catch (error) {
+            console.warn('Could not synchronize workout history:', error);
+            if (useUserStore.getState().currentUser?.uid === uid) {
+              set({ sessionSyncError: 'No se pudo sincronizar el progreso con Internet. Los cambios locales siguen en este navegador. Reintenta antes de cerrarlo.' });
+            }
+          } finally {
+            if (get().sessionSyncUserId === uid) set({ isSyncingSessions: false });
+          }
+        })();
+        sessionSyncTasks.set(uid, task);
+        try { await task; } finally { sessionSyncTasks.delete(uid); }
+      },
       activeSession: initialSessionState,
       isLiveWorkoutOpen: false,
       isFullScreenTimerOpen: false,
@@ -632,7 +700,7 @@ export const useRoutineStore = create<RoutineState>()(
         const actualDuration = durationMinOverride || calcDuration;
 
         const newLog: SessionLog = {
-          id: `log-${Date.now()}`,
+          id: `log-${crypto.randomUUID()}`,
           user_id: userProfile?.id || activeRoutine.user_id,
           routine_day_id: activeSession.routineDayId,
           routine_day_name: currentDay?.name || 'Día de entrenamiento',
@@ -651,6 +719,7 @@ export const useRoutineStore = create<RoutineState>()(
           isFullScreenTimerOpen: false,
         });
 
+        void get().syncSessionHistory();
         get().syncSessionLogsToSupabase(newLog);
 
         return newLog;
@@ -665,15 +734,21 @@ export const useRoutineStore = create<RoutineState>()(
       },
 
       deleteSessionLog: (logId: string) => {
+        const log = get().sessionLogs.find((item) => item.id === logId);
+        const uid = useUserStore.getState().currentUser?.uid;
+        if (!log || (uid && log.user_id !== uid)) return;
         set((state) => ({
-          sessionLogs: state.sessionLogs.filter((l) => l.id !== logId),
+          sessionLogs: state.sessionLogs.filter((item) => item.id !== logId),
+          deletedSessionLogs: { ...state.deletedSessionLogs, [logId]: log.user_id },
         }));
+        void get().syncSessionHistory();
       },
 
       addSessionLogDirectly: (log: SessionLog) => {
         set((state) => ({
           sessionLogs: [log, ...state.sessionLogs],
         }));
+        void get().syncSessionHistory();
         get().syncSessionLogsToSupabase(log);
       },
 
@@ -736,7 +811,9 @@ export const useRoutineStore = create<RoutineState>()(
       },
 
       getStats: (): WorkoutStats => {
-        const logs = get().sessionLogs;
+        const user = useUserStore.getState();
+        const ownerId = user.currentUser?.uid || user.profile?.id;
+        const logs = get().sessionLogs.filter((log) => log.user_id === ownerId);
         const totalSessions = logs.length;
         const totalMinutes = logs.reduce((acc, curr) => acc + (curr.duration_min || 0), 0);
 
@@ -835,6 +912,9 @@ export const useRoutineStore = create<RoutineState>()(
       name: 'fitplan_routine_storage',
       onRehydrateStorage: () => (state) => {
         if (state) {
+          state.isSyncingSessions = false;
+          state.sessionSyncUserId = null;
+          state.sessionSyncError = null;
           // Guarantee all default routines (including Cristian Aguilera) are present and updated in store
           const cristianOfficial = defaultSeedRoutines.find((r) => r.id === 'routine-cristian-aguilera');
           const existingIds = new Set((state.routines || []).map((r) => r.id));

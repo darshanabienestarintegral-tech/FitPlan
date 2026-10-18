@@ -350,7 +350,7 @@ export const Routine: React.FC = () => {
               Sesión Completada
             </h3>
             <p className="text-xs text-[#78716C] mb-5">
-              {lastFinishedSummary.dayName} guardado con éxito.
+              {lastFinishedSummary.dayName} finalizado. Comprueba arriba el estado de sincronización.
             </p>
 
             <div className="grid grid-cols-2 gap-3 mb-6 bg-[#FAF7F2] p-3 rounded-2xl border border-[#EAE3D9]">

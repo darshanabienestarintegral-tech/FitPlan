@@ -65,7 +65,7 @@ export async function fetchUserProfile(uid: string): Promise<FirebaseUserProfile
 // A disconnected Firestore client can leave a write pending indefinitely.
 // A timeout does not cancel a queued write; users can sign in to recover an
 // account that Auth already created, even if profile saving timed out.
-async function withFirebaseTimeout<T>(operation: Promise<T>): Promise<T> {
+export async function withFirebaseTimeout<T>(operation: Promise<T>): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(Object.assign(
