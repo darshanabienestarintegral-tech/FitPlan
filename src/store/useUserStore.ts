@@ -118,94 +118,43 @@ export const useUserStore = create<UserState>()(
             return { success: true, role: 'admin' };
           }
 
-          // Try Firebase Auth
-          let fbProfile: any = null;
-          try {
-            const res = await fbLogin(cleanUsername, password);
-            fbProfile = res.profile;
-          } catch (fbErr: any) {
-            console.warn('Firebase login notice:', fbErr?.code || fbErr?.message);
-          }
+          const { profile: fbProfile } = await fbLogin(cleanUsername, password);
 
-          if (fbProfile) {
-            const isAdmin = fbProfile.role === 'admin';
-            set({
-              currentUser: {
-                uid: fbProfile.uid,
-                email: fbProfile.email,
-                username: fbProfile.username || fbProfile.displayName || cleanUsername,
-                role: fbProfile.role,
-                isAdmin,
-                accessCode: isAdmin ? 'MASTER-ADMIN' : 'FIREBASE-AUTH',
-                loginTime: new Date().toISOString(),
-              },
-              profile: {
-                id: fbProfile.uid,
-                name: fbProfile.displayName || cleanUsername,
-                level: 'intermedio',
-                goal: 'resistencia',
-                days_per_week: 3,
-                session_duration: 60,
-                equipment: 'gimnasio',
-              },
-              isAuthenticated: true,
-              isOnboarded: true,
-              isLoading: false,
-              error: null,
-            });
-            return { success: true, role: fbProfile.role };
-          }
-
-          // Fallback: Check local registeredAccounts
-          const localAcc = get().registeredAccounts.find(
-            (acc) => acc.username.toLowerCase() === cleanUsername
-          );
-
-          if (localAcc) {
-            if (localAcc.password && localAcc.password !== password) {
-              set({ isLoading: false, error: 'Contraseña incorrecta.' });
-              return { success: false, message: 'Contraseña incorrecta.' };
-            }
-
-            const role = localAcc.role || (localAcc.username === 'admin' ? 'admin' : 'usuario');
-            const isAdmin = role === 'admin';
-
-            set({
-              currentUser: {
-                username: localAcc.username,
-                role,
-                isAdmin,
-                accessCode: localAcc.accessCode || 'FITPLAN-USER',
-                loginTime: new Date().toISOString(),
-              },
-              profile: {
-                id: localAcc.profileId,
-                name: localAcc.fullName || localAcc.username,
-                level: 'intermedio',
-                goal: 'resistencia',
-                days_per_week: 3,
-                session_duration: 60,
-                equipment: 'gimnasio',
-              },
-              isAuthenticated: true,
-              isOnboarded: true,
-              isLoading: false,
-              error: null,
-            });
-
-            return { success: true, role };
-          }
-
-          set({ isLoading: false, error: 'Usuario no encontrado. Por favor regístrate.' });
-          return {
-            success: false,
-            message: 'Usuario no encontrado. Solo cuando te registres figurarás en el sistema.',
-          };
+          const isAdmin = fbProfile.role === 'admin';
+          set({
+            currentUser: {
+              uid: fbProfile.uid,
+              email: fbProfile.email,
+              username: fbProfile.username || fbProfile.displayName || cleanUsername,
+              role: fbProfile.role,
+              isAdmin,
+              accessCode: isAdmin ? 'MASTER-ADMIN' : 'FIREBASE-AUTH',
+              loginTime: new Date().toISOString(),
+            },
+            profile: {
+              id: fbProfile.uid,
+              name: fbProfile.displayName || cleanUsername,
+              level: 'intermedio',
+              goal: 'resistencia',
+              days_per_week: 3,
+              session_duration: 60,
+              equipment: 'gimnasio',
+            },
+            isAuthenticated: true,
+            isOnboarded: true,
+            isLoading: false,
+            error: null,
+          });
+          return { success: true, role: fbProfile.role };
         } catch (err: any) {
           console.error('Firebase login error:', err);
           let message = 'Error al iniciar sesión.';
           if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
             message = 'Credenciales no encontradas. Regístrate en la pestaña "Nuevo Usuario".';
+          } else if (err.code === 'app/firebase-timeout') {
+            message = err.message;
+          } else if (err.code === 'auth/network-request-failed') {
+            message = 'No se pudo conectar con Firebase. Comprueba tu conexión.';
           } else if (err.code === 'auth/wrong-password') {
             message = 'Contraseña incorrecta.';
           }
@@ -220,10 +169,12 @@ export const useUserStore = create<UserState>()(
           const cleanUsername = username.trim();
 
           if (!cleanUsername) {
+            set({ isLoading: false });
             return { success: false, message: 'Ingresa un nombre de usuario.' };
           }
-          if (!password || password.length < 3) {
-            return { success: false, message: 'La contraseña debe tener al menos 3 caracteres.' };
+          if (!password || password.length < 6) {
+            set({ isLoading: false });
+            return { success: false, message: 'La contraseña debe tener al menos 6 caracteres.' };
           }
 
           // Check if username already exists in registered accounts
@@ -235,18 +186,12 @@ export const useUserStore = create<UserState>()(
             return { success: false, message: 'Este nombre de usuario ya existe. Inicia sesión.' };
           }
 
-          let uid = 'usr-' + Date.now();
-          try {
-            const res = await fbRegister(cleanUsername, password, role);
-            uid = res.user.uid;
-          } catch (fbErr: any) {
-            console.warn('Firebase registration fallback to local:', fbErr);
-          }
+          const res = await fbRegister(cleanUsername, password, role);
+          const uid = res.user.uid;
 
           const isAdmin = role === 'admin';
           const newAccount: UserAccount = {
             username: cleanUsername,
-            password,
             role,
             accessCode: isAdmin ? 'MASTER-ADMIN' : 'REGISTRADO',
             createdAt: new Date().toISOString(),
@@ -286,9 +231,15 @@ export const useUserStore = create<UserState>()(
           return { success: true, role };
         } catch (err: any) {
           console.error('Registration error:', err);
-          let message = 'Error al registrar usuario.';
+          let message = 'No se pudo completar el registro. Si tu cuenta ya se creó, intenta iniciar sesión.';
           if (err.code === 'auth/email-already-in-use') {
             message = 'Este nombre de usuario ya está registrado en Firebase.';
+          } else if (err.code === 'app/firebase-timeout') {
+            message = err.message;
+          } else if (err.code === 'auth/network-request-failed') {
+            message = 'No se pudo conectar con Firebase. Comprueba tu conexión.';
+          } else if (err.code === 'auth/operation-not-allowed') {
+            message = 'El registro con contraseña no está habilitado en Firebase.';
           } else if (err.code === 'auth/weak-password') {
             message = 'La contraseña debe tener al menos 6 caracteres.';
           }
